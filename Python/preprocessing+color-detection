@@ -1,145 +1,124 @@
 import cv2
 import numpy as np
+import argparse
+import sys
 
 # Store previous positions for smoothing
 prev_circles = {"Red": None, "Green": None, "Blue": None}
-alpha = 0.6  # Smoothing factor
+alpha = 0.7  # Smoothing factor
 
-def smooth_circle(new_circle, prev_circle, alpha=0.6):
+def smooth_circle(new_circle, prev_circle, alpha=0.7):
     """Smooth circle movement using exponential moving average (EMA)."""
     if prev_circle is None:
         return new_circle
     return tuple(int(alpha * new + (1 - alpha) * prev) for new, prev in zip(new_circle, prev_circle))
 
-def nothing(x):
-    pass
+def preprocess_frame(frame, blur_kernel=(7, 7), canny_lower=25, canny_upper=90,
+                     min_contour_area=500, clahe_cliplimit=3.5, clahe_tile=(8, 8)):
+    """Applies grayscale conversion, CLAHE contrast enhancement, Gaussian blur, edge detection, and contour filtering."""
 
-# Initialize webcam
-cap = cv2.VideoCapture(0)
-cv2.namedWindow("Trackbars")
-
-# Trackbars for Color Thresholds
-for color in ["Red", "Green", "Blue"]:
-    cv2.createTrackbar(f"Low-H {color}", "Trackbars", 0, 179, nothing)
-    cv2.createTrackbar(f"Low-S {color}", "Trackbars", 160, 255, nothing)
-    cv2.createTrackbar(f"Low-V {color}", "Trackbars", 120, 255, nothing)
-    cv2.createTrackbar(f"High-H {color}", "Trackbars", 179, 179, nothing)
-    cv2.createTrackbar(f"High-S {color}", "Trackbars", 255, 255, nothing)
-    cv2.createTrackbar(f"High-V {color}", "Trackbars", 255, 255, nothing)
-
-def preprocess_frame(frame):
-    """Applies preprocessing steps: grayscale, blur, CLAHE, edge detection, and contour filtering."""
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+    blurred = cv2.GaussianBlur(gray, blur_kernel, 0)
 
-    # Apply CLAHE for contrast enhancement
-    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
+    # Adaptive CLAHE for contrast enhancement
+    light_avg = np.mean(gray)  # Check brightness
+    clahe_clip = 4.5 if light_avg < 100 else clahe_cliplimit
+    clahe = cv2.createCLAHE(clipLimit=clahe_clip, tileGridSize=clahe_tile)
     equalized = clahe.apply(blurred)
 
-    # Edge detection with Canny
-    edges = cv2.Canny(equalized, 30, 120)
+    # Apply Edge Detection
+    edges = cv2.Canny(equalized, canny_lower, canny_upper)
 
     # Find contours
     contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    # Filter contours based on size
-    min_contour_area = 500
-    max_contour_area = 30000
-    filtered_contours = [cnt for cnt in contours if min_contour_area < cv2.contourArea(cnt) < max_contour_area]
+    # Filter Contours
+    filtered_contours = [cnt for cnt in contours if min_contour_area < cv2.contourArea(cnt) < 50000]
 
     # Draw contours
     contour_frame = frame.copy()
     if filtered_contours:
         cv2.drawContours(contour_frame, filtered_contours, -1, (0, 255, 0), 2)
     else:
-        print("No contours detected!")
-
-
+        print("⚠ No contours detected!")
 
     return blurred, equalized, edges, contour_frame, filtered_contours
 
-while True:
-    ret, frame = cap.read()
-    if not ret:
-        break
+def detect_colors(frame):
+    """Detects red, green, and blue objects using HSV color filtering."""
 
-    # Apply Preprocessing
-    blurred, equalized, edges, contour_frame, contours = preprocess_frame(frame)
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-    # Convert to LAB and HSV color spaces
-    lab = cv2.cvtColor(frame, cv2.COLOR_BGR2LAB)
-    l, a, b = cv2.split(lab)
-    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
-    a = clahe.apply(a)
-    lab = cv2.merge([l, a, b])
-    enhanced_frame = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
-    hsv = cv2.cvtColor(enhanced_frame, cv2.COLOR_BGR2HSV)
-
-    # Get HSV values from trackbars
-    def get_hsv_values(color):
-        return [
-            cv2.getTrackbarPos(f"Low-H {color}", "Trackbars"),
-            cv2.getTrackbarPos(f"Low-S {color}", "Trackbars"),
-            cv2.getTrackbarPos(f"Low-V {color}", "Trackbars")
-        ], [
-            cv2.getTrackbarPos(f"High-H {color}", "Trackbars"),
-            cv2.getTrackbarPos(f"High-S {color}", "Trackbars"),
-            cv2.getTrackbarPos(f"High-V {color}", "Trackbars")
-        ]
-
-    # Adjust HSV Ranges for Better Blue-Green Separation
-    lower_red1, upper_red1 = np.array([0, *get_hsv_values("Red")[0][1:]]), np.array([10, *get_hsv_values("Red")[1][1:]])
-    lower_red2, upper_red2 = np.array([170, *get_hsv_values("Red")[0][1:]]), np.array([180, *get_hsv_values("Red")[1][1:]])
-    lower_green, upper_green = np.array([40, 100, 100]), np.array([80, 255, 255])  # Adjusted to avoid overlap
-    lower_blue, upper_blue = np.array([90, 150, 70]), np.array([130, 255, 255])  # Increased S & V to make blue stronger
+    # Define HSV Ranges
+    lower_red1, upper_red1 = np.array([0, 120, 50]), np.array([10, 255, 255])
+    lower_red2, upper_red2 = np.array([170, 120, 50]), np.array([180, 255, 255])
+    lower_green, upper_green = np.array([40, 90, 50]), np.array([85, 255, 255])
+    lower_blue, upper_blue = np.array([90, 150, 60]), np.array([130, 255, 255])
 
     # Create masks
     mask_red = cv2.inRange(hsv, lower_red1, upper_red1) + cv2.inRange(hsv, lower_red2, upper_red2)
     mask_green = cv2.inRange(hsv, lower_green, upper_green)
     mask_blue = cv2.inRange(hsv, lower_blue, upper_blue)
 
-    # Remove noise with morphological operations
+    # Remove noise
     kernel = np.ones((5, 5), np.uint8)
     mask_red = cv2.morphologyEx(mask_red, cv2.MORPH_CLOSE, kernel)
     mask_green = cv2.morphologyEx(mask_green, cv2.MORPH_CLOSE, kernel)
     mask_blue = cv2.morphologyEx(mask_blue, cv2.MORPH_CLOSE, kernel)
 
-    # Prevent overlapping detections
-    mask_green[mask_red > 0] = 0
-    mask_blue[mask_red > 0] = 0
-    mask_blue[mask_green > 0] = 0  # Green takes priority over blue
+    return mask_red, mask_green, mask_blue
 
-    # Function to detect and label circles
-    def detect_and_label(mask, color_name, frame, color):
-        global prev_circles
-        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        detected_circles = [(int(x), int(y), int(radius)) for contour in contours
-                            if 4000 < cv2.contourArea(contour) < 30000
-                            for (x, y), radius in [cv2.minEnclosingCircle(contour)]]
+def detect_and_label(mask, color_name, frame, color):
+    """Detects circles based on the mask and labels them with text."""
+    global prev_circles
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    detected_circles = [(int(x), int(y), int(radius)) for contour in contours
+                        if 1500 < cv2.contourArea(contour) < 50000
+                        for (x, y), radius in [cv2.minEnclosingCircle(contour)]]
 
-        if detected_circles:
-            x, y, radius = max(detected_circles, key=lambda c: c[2])
-            prev_circle = prev_circles[color_name]
-            if prev_circle:
-                x = int(alpha * x + (1 - alpha) * prev_circle[0])
-                y = int(alpha * y + (1 - alpha) * prev_circle[1])
-                radius = int(alpha * radius + (1 - alpha) * prev_circle[2])
+    if detected_circles:
+        x, y, radius = max(detected_circles, key=lambda c: c[2])
+        prev_circle = prev_circles[color_name]
+        if prev_circle:
+            x = int(alpha * x + (1 - alpha) * prev_circle[0])
+            y = int(alpha * y + (1 - alpha) * prev_circle[1])
+            radius = int(alpha * radius + (1 - alpha) * prev_circle[2])
 
-            prev_circles[color_name] = (x, y, radius)
-            cv2.circle(frame, (x, y), radius, color, 2)
-            cv2.putText(frame, color_name, (x - radius, y - radius - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2)
+        prev_circles[color_name] = (x, y, radius)
+        cv2.circle(frame, (x, y), radius, color, 2)
+        cv2.putText(frame, color_name, (x - radius, y - radius - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2)
 
-    detect_and_label(mask_red, "Red", frame, (0, 0, 255))
-    detect_and_label(mask_green, "Green", frame, (0, 255, 0))
-    detect_and_label(mask_blue, "Blue", frame, (255, 0, 0))
+def run_camera():
+    """Runs the camera loop with preprocessing and color detection."""
+    cap = cv2.VideoCapture(0)
 
-    # Display Results
-    cv2.imshow("Original Frame", frame)
-    cv2.imshow("Preprocessed Edges", edges)
-    #cv2.imshow("Contour Detection", contour_frame)
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
 
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+        # Apply Preprocessing
+        blurred, equalized, edges, contour_frame, contours = preprocess_frame(frame)
 
-cap.release()
-cv2.destroyAllWindows()
+        # Detect Colors
+        mask_red, mask_green, mask_blue = detect_colors(frame)
+
+        # Apply circle detection and labeling
+        detect_and_label(mask_red, "Red", frame, (0, 0, 255))
+        detect_and_label(mask_green, "Green", frame, (0, 255, 0))
+        detect_and_label(mask_blue, "Blue", frame, (255, 0, 0))
+
+        # Display Results
+        cv2.imshow("Original Frame", frame)
+        cv2.imshow("Preprocessed Edges", edges)
+        cv2.imshow("Contour Detection", contour_frame)
+
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    cap.release()
+    cv2.destroyAllWindows()
+
+if __name__ == "__main__":
+    run_camera()
+
