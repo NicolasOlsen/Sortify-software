@@ -50,9 +50,9 @@ def detect_colors(frame):
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
     # Define HSV Ranges
-    lower_red1, upper_red1 = np.array([0, 120, 50]), np.array([10, 255, 255])
-    lower_red2, upper_red2 = np.array([170, 120, 50]), np.array([180, 255, 255])
-    lower_green, upper_green = np.array([40, 90, 50]), np.array([85, 255, 255])
+    lower_red1, upper_red1 = np.array([0, 150, 50]), np.array([10, 255, 255])
+    lower_red2, upper_red2 = np.array([170, 150, 50]), np.array([180, 255, 255])
+    lower_green, upper_green = np.array([40, 50, 50]), np.array([85, 255, 255])
     lower_blue, upper_blue = np.array([90, 150, 60]), np.array([130, 255, 255])
 
     # Create masks
@@ -61,7 +61,7 @@ def detect_colors(frame):
     mask_blue = cv2.inRange(hsv, lower_blue, upper_blue)
 
     # Remove noise
-    kernel = np.ones((5, 5), np.uint8)
+    kernel = np.ones((7, 7), np.uint8)
     mask_red = cv2.morphologyEx(mask_red, cv2.MORPH_CLOSE, kernel)
     mask_green = cv2.morphologyEx(mask_green, cv2.MORPH_CLOSE, kernel)
     mask_blue = cv2.morphologyEx(mask_blue, cv2.MORPH_CLOSE, kernel)
