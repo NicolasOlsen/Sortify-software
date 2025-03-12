@@ -23,8 +23,8 @@ def detect_colors(frame):
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
     # **🔴 Fixed Red HSV Range**
-    lower_red1, upper_red1 = np.array([0, 130, 70]), np.array([10, 255, 255])  
-    lower_red2, upper_red2 = np.array([170, 130, 70]), np.array([180, 255, 255])  
+    lower_red1, upper_red1 = np.array([0, 130, 70]), np.array([10, 255, 255])
+    lower_red2, upper_red2 = np.array([170, 130, 70]), np.array([180, 255, 255])
 
     # **🟢 Fixed Green HSV Range**
     lower_green, upper_green = np.array([35, 70, 50]), np.array([90, 255, 255])
@@ -97,7 +97,9 @@ def run_camera():
         # Display Windows
         cv2.imshow("Original Frame", frame)
         cv2.imshow("Preprocessed Edges", edges)
-
+        cv2.imshow("Mask Blue", mask_blue)
+        cv2.imshow("Mask Red", mask_red)
+        cv2.imshow("Mask Green", mask_green)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
