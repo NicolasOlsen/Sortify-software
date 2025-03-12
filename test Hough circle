@@ -1,0 +1,108 @@
+import cv2
+import numpy as np
+
+# Store previous detections for smoothing
+prev_circles = {"Red": [], "Green": [], "Blue": []}
+
+def preprocess_frame(frame):
+    """Preprocess frame: Grayscale, CLAHE, Gaussian Blur, Edge Detection."""
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    blurred = cv2.GaussianBlur(gray, (7, 7), 1.5)
+
+    # CLAHE for brightness normalization
+    clahe = cv2.createCLAHE(clipLimit=3.5, tileGridSize=(8, 8))
+    equalized = clahe.apply(blurred)
+
+    # Edge Detection
+    edges = cv2.Canny(equalized, 50, 120)  # Adjusted for clarity
+
+    return blurred, equalized, edges
+
+def detect_colors(frame):
+    """Detects red, green, and blue objects using HSV color filtering."""
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+
+    # **🔴 Fixed Red HSV Range**
+    lower_red1, upper_red1 = np.array([0, 130, 70]), np.array([10, 255, 255])  
+    lower_red2, upper_red2 = np.array([170, 130, 70]), np.array([180, 255, 255])  
+
+    # **🟢 Fixed Green HSV Range**
+    lower_green, upper_green = np.array([35, 70, 50]), np.array([90, 255, 255])
+
+    # **🔵 Blue remains stable**
+    lower_blue, upper_blue = np.array([90, 110, 50]), np.array([130, 255, 255])
+
+    # Create masks
+    mask_red = cv2.inRange(hsv, lower_red1, upper_red1) + cv2.inRange(hsv, lower_red2, upper_red2)
+    mask_green = cv2.inRange(hsv, lower_green, upper_green)
+    mask_blue = cv2.inRange(hsv, lower_blue, upper_blue)
+
+    # **Noise Reduction (Strong Filtering)**
+    kernel = np.ones((6, 6), np.uint8)
+    mask_red = cv2.morphologyEx(mask_red, cv2.MORPH_CLOSE, kernel)
+    mask_green = cv2.morphologyEx(mask_green, cv2.MORPH_CLOSE, kernel)
+    mask_blue = cv2.morphologyEx(mask_blue, cv2.MORPH_CLOSE, kernel)
+
+    return mask_red, mask_green, mask_blue
+
+def detect_and_label(mask, color_name, frame, color):
+    """Detects and labels multiple circles separately using contours."""
+    global prev_circles
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    detected_circles = []
+    for contour in contours:
+        area = cv2.contourArea(contour)
+        if 1000 < area < 50000:  # **Stronger filtering to remove small detections**
+            (x, y), radius = cv2.minEnclosingCircle(contour)
+
+            # **Check Circularity to Avoid Detecting Non-Round Objects**
+            perimeter = cv2.arcLength(contour, True)
+            circularity = 4 * np.pi * (area / (perimeter * perimeter)) if perimeter > 0 else 0
+            if 0.75 < circularity < 1.2:
+                detected_circles.append((int(x), int(y), int(radius)))
+
+    prev_circles[color_name] = detected_circles if detected_circles else []
+
+    # Draw the circles
+    for x, y, radius in prev_circles[color_name]:
+        cv2.circle(frame, (x, y), radius, color, 2)
+        cv2.putText(frame, color_name, (x - radius, y - radius - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2)
+
+def run_camera():
+    """Runs the camera loop with preprocessing and color detection."""
+    cap = cv2.VideoCapture(0)
+
+    # Set Camera Resolution
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        # Preprocessing
+        _, _, edges = preprocess_frame(frame)
+
+        # Color Detection
+        mask_red, mask_green, mask_blue = detect_colors(frame)
+
+        # Apply Circle Detection and Labeling
+        detect_and_label(mask_red, "Red", frame, (0, 0, 255))
+        detect_and_label(mask_green, "Green", frame, (0, 255, 0))
+        detect_and_label(mask_blue, "Blue", frame, (255, 0, 0))
+
+        # Display Windows
+        cv2.imshow("Original Frame", frame)
+        cv2.imshow("Preprocessed Edges", edges)
+
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    cap.release()
+    cv2.destroyAllWindows()
+
+if __name__ == "__main__":
+    run_camera()
