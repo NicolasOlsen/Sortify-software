@@ -1,67 +1,43 @@
 import cv2
 import numpy as np
-import argparse
-import sys
 
-# Store previous positions for smoothing
-prev_circles = {"Red": None, "Green": None, "Blue": None}
-alpha = 0.7  # Smoothing factor
+# Store previous detected circles for smoother tracking
+prev_circles = {"Red": [], "Green": [], "Blue": []}
+alpha = 0.85  # Smoothing factor
 
-def smooth_circle(new_circle, prev_circle, alpha=0.7):
-    """Smooth circle movement using exponential moving average (EMA)."""
-    if prev_circle is None:
-        return new_circle
-    return tuple(int(alpha * new + (1 - alpha) * prev) for new, prev in zip(new_circle, prev_circle))
-
-def preprocess_frame(frame, blur_kernel=(7, 7), canny_lower=25, canny_upper=90,
-                     min_contour_area=500, clahe_cliplimit=3.5, clahe_tile=(8, 8)):
-    """Applies grayscale conversion, CLAHE contrast enhancement, Gaussian blur, edge detection, and contour filtering."""
-
+def preprocess_frame(frame):
+    """Preprocess frame: Grayscale, CLAHE, Gaussian Blur, Edge Detection."""
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    blurred = cv2.GaussianBlur(gray, blur_kernel, 0)
+    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
 
-    # Adaptive CLAHE for contrast enhancement
-    light_avg = np.mean(gray)  # Check brightness
-    clahe_clip = 4.5 if light_avg < 100 else clahe_cliplimit
-    clahe = cv2.createCLAHE(clipLimit=clahe_clip, tileGridSize=clahe_tile)
+    # CLAHE for brightness normalization
+    clahe = cv2.createCLAHE(clipLimit=3.5, tileGridSize=(8, 8))
     equalized = clahe.apply(blurred)
 
-    # Apply Edge Detection
-    edges = cv2.Canny(equalized, canny_lower, canny_upper)
+    # Edge Detection
+    edges = cv2.Canny(equalized, 25, 80)  # Moderate threshold
 
-    # Find contours
-    contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-    # Filter Contours
-    filtered_contours = [cnt for cnt in contours if min_contour_area < cv2.contourArea(cnt) < 50000]
-
-    # Draw contours
-    contour_frame = frame.copy()
-    if filtered_contours:
-        cv2.drawContours(contour_frame, filtered_contours, -1, (0, 255, 0), 2)
-    else:
-        print("⚠ No contours detected!")
-
-    return blurred, equalized, edges, contour_frame, filtered_contours
+    return blurred, equalized, edges
 
 def detect_colors(frame):
-    """Detects red, green, and blue objects using HSV color filtering."""
-
+    """Detects red, green, and blue objects using optimized HSV color filtering."""
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-    # Define HSV Ranges
-    lower_red1, upper_red1 = np.array([0, 150, 50]), np.array([10, 255, 255])
-    lower_red2, upper_red2 = np.array([170, 150, 50]), np.array([180, 255, 255])
-    lower_green, upper_green = np.array([40, 50, 50]), np.array([85, 255, 255])
-    lower_blue, upper_blue = np.array([90, 150, 60]), np.array([130, 255, 255])
+    # Loosened HSV Ranges for detection
+    lower_red1, upper_red1 = np.array([0, 90, 40]), np.array([10, 255, 255])
+    lower_red2, upper_red2 = np.array([170, 90, 40]), np.array([180, 255, 255])
+    
+    lower_green, upper_green = np.array([35, 50, 40]), np.array([85, 255, 255])
+    
+    lower_blue, upper_blue = np.array([90, 120, 40]), np.array([130, 255, 255])  # Loosened range
 
     # Create masks
     mask_red = cv2.inRange(hsv, lower_red1, upper_red1) + cv2.inRange(hsv, lower_red2, upper_red2)
     mask_green = cv2.inRange(hsv, lower_green, upper_green)
     mask_blue = cv2.inRange(hsv, lower_blue, upper_blue)
 
-    # Remove noise
-    kernel = np.ones((7, 7), np.uint8)
+    # Noise Reduction (Moderate Filtering)
+    kernel = np.ones((4, 4), np.uint8)
     mask_red = cv2.morphologyEx(mask_red, cv2.MORPH_CLOSE, kernel)
     mask_green = cv2.morphologyEx(mask_green, cv2.MORPH_CLOSE, kernel)
     mask_blue = cv2.morphologyEx(mask_blue, cv2.MORPH_CLOSE, kernel)
@@ -69,22 +45,30 @@ def detect_colors(frame):
     return mask_red, mask_green, mask_blue
 
 def detect_and_label(mask, color_name, frame, color):
-    """Detects circles based on the mask and labels them with text."""
+    """Detects and labels multiple circles separately, removes stale detections."""
     global prev_circles
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    detected_circles = [(int(x), int(y), int(radius)) for contour in contours
-                        if 1500 < cv2.contourArea(contour) < 50000
-                        for (x, y), radius in [cv2.minEnclosingCircle(contour)]]
 
+    detected_circles = []
+    for contour in contours:
+        area = cv2.contourArea(contour)
+        if 800 < area < 45000:  # Adjusted size restrictions
+            (x, y), radius = cv2.minEnclosingCircle(contour)
+
+            # Check Circularity to Avoid Noise
+            perimeter = cv2.arcLength(contour, True)
+            circularity = 4 * np.pi * (area / (perimeter * perimeter)) if perimeter > 0 else 0
+            if 0.6 < circularity < 1.2:  
+                detected_circles.append((int(x), int(y), int(radius)))
+
+    # **If no detections, clear old data (fixes "stuck circles" issue)**
     if detected_circles:
-        x, y, radius = max(detected_circles, key=lambda c: c[2])
-        prev_circle = prev_circles[color_name]
-        if prev_circle:
-            x = int(alpha * x + (1 - alpha) * prev_circle[0])
-            y = int(alpha * y + (1 - alpha) * prev_circle[1])
-            radius = int(alpha * radius + (1 - alpha) * prev_circle[2])
+        prev_circles[color_name] = detected_circles  
+    else:
+        prev_circles[color_name] = []  # **Clear circles if nothing detected**
 
-        prev_circles[color_name] = (x, y, radius)
+    # **Draw only currently detected circles**
+    for x, y, radius in prev_circles[color_name]:
         cv2.circle(frame, (x, y), radius, color, 2)
         cv2.putText(frame, color_name, (x - radius, y - radius - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2)
 
@@ -92,26 +76,31 @@ def run_camera():
     """Runs the camera loop with preprocessing and color detection."""
     cap = cv2.VideoCapture(0)
 
+    # Increase Camera Resolution
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+
     while True:
         ret, frame = cap.read()
         if not ret:
             break
 
-        # Apply Preprocessing
-        blurred, equalized, edges, contour_frame, contours = preprocess_frame(frame)
+        # Preprocessing
+        blurred, equalized, edges = preprocess_frame(frame)
 
-        # Detect Colors
+        # Color Detection
         mask_red, mask_green, mask_blue = detect_colors(frame)
 
-        # Apply circle detection and labeling
+        # Apply Circle Detection and Labeling
         detect_and_label(mask_red, "Red", frame, (0, 0, 255))
         detect_and_label(mask_green, "Green", frame, (0, 255, 0))
         detect_and_label(mask_blue, "Blue", frame, (255, 0, 0))
 
-        # Display Results
+        # Show Debugging Windows
         cv2.imshow("Original Frame", frame)
         cv2.imshow("Preprocessed Edges", edges)
-        cv2.imshow("Contour Detection", contour_frame)
+        cv2.imshow("Mask Red", mask_red)
+        cv2.imshow("Mask Blue", mask_blue)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
@@ -121,4 +110,3 @@ def run_camera():
 
 if __name__ == "__main__":
     run_camera()
-
