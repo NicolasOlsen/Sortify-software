@@ -9,7 +9,7 @@ def detect_balls_webcam():
         'red1': [(0, 90, 140), (10, 255, 255)],   # First red range
         'red2': [(170, 90, 140), (180, 255, 255)],  # Second red range
         'blue': [(100, 70, 80), (120, 255, 255)],
-        'green': [(36, 50, 50), (86, 255, 255)]
+        'green': [(24, 70, 85), (60, 255, 255)]
     }
 
     # Define display colors for circles
