@@ -1,30 +1,32 @@
-// External libraries
 #include <Arduino.h>
-#include <CRC16.h>
+#include "System_status.h"
+#include "UART_communication.h"
 
-// Included files
-#include "MotorControl.h"
-#include "Communication.h"
-#include "ErrorHandling.h"
+using namespace UART_communication;
 
+void sendRequest(MainCommand command);
 
 void setup() {
-  //Initialize serial and wait for port to open:
-  Serial.begin(1000000);
-  while (!Serial) {
-    ;  // wait for serial port to connect. Needed for native USB port only
-  }
+    System_status::currentStatus = StatusCode::INITIALIZING;
+    Serial.begin(115200);  // Debugging output to PC
+    UART_init(1000000);  // Initialize UART1
 
-  // prints title with ending line break
-  Serial.println("ASCII Table ~ Character Map");
+    Serial.println("Master Initialized.");
+    Serial.print("\nRequesting Status...");
+    sendRequest(MainCommand::REQUEST_STATUS);
 }
 
-// first visible ASCIIcharacter '!' is number 33:
-int thisByte = 33;
-// you can also write ASCII characters in single quotes.
-// for example, '!' is the same as 33, so you could also use this:
-// int thisByte = '!';
-
 void loop() {
+    System_status::currentStatus = StatusCode::IDLE;
+    // Process response if available
+    while (Serial1.available()) {
+        receiveUARTData();  // Read and process response
+    }
+    Serial.println("Loop");
+    delay(100);
+}
 
+// Function to send a request packet to the Slave
+void sendRequest(MainCommand command) {
+    sendPacket(command, nullptr, 0);
 }
