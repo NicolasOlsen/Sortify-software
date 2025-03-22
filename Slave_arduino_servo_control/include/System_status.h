@@ -4,9 +4,9 @@
 #include <Arduino.h>
 #include <stdint.h>
 
-#include "UART_communication.h"
+#include "Communication_code.h"
 
-using namespace UART_communication;
+using namespace Com_code;
 
 namespace System_status
 {

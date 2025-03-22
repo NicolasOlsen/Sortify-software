@@ -1,29 +1,39 @@
 #include <Arduino.h>
 #include "System_status.h"
+#include "Debug.h"
 #include "UART_communication.h"
 
+using namespace Com_code;
 using namespace UART_communication;
+
+unsigned long previousTime = millis();
+const unsigned long interval = 200;
 
 void sendRequest(MainCommand command);
 
 void setup() {
     System_status::currentStatus = StatusCode::INITIALIZING;
-    Serial.begin(115200);  // Debugging output to PC
+    Debug::init(250000);  // Debugging output to PC
     UART_init(1000000);  // Initialize UART1
 
-    Serial.println("Master Initialized.");
-    Serial.print("\nRequesting Status...");
-    sendRequest(MainCommand::REQUEST_STATUS);
+    Debug::infoln("Slave Initialized.");
+
+    System_status::currentStatus = StatusCode::IDLE;
 }
 
 void loop() {
-    System_status::currentStatus = StatusCode::IDLE;
-    // Process response if available
-    while (Serial1.available()) {
+    unsigned long currentTime = millis();
+
+    if (currentTime - previousTime >= interval) {
+        previousTime += interval;
+
+        // Debug::infoln("Requesting Status...");
+        // sendRequest(MainCommand::REQUEST_STATUS);
+
         receiveUARTData();  // Read and process response
+
+        Debug::infoln("Tick");
     }
-    Serial.println("Loop");
-    delay(100);
 }
 
 // Function to send a request packet to the Slave

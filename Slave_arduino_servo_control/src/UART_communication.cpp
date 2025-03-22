@@ -1,19 +1,23 @@
+#include <CRC16.h>
+
 #include "UART_communication.h"
 #include "System_status.h"
-#include <CRC16.h>
+#include "Debug.h"
+
+using namespace Com_code;
 
 namespace UART_communication {
 
 // UART buffer settings
-const unsigned UART_BUFFER_SIZE { 64 };
+constexpr unsigned UART_BUFFER_SIZE { 64 };
 
 // Const values for packet
-const uint8_t Header1 { 0xAA };
-const uint8_t Header2 { 0x55 };
-const uint8_t minPacketSize { 6 };
-const uint8_t PACKET_TIMEOUT { 100 };
+constexpr uint8_t startBytes[] { 0xAA, 0x55 };  // Can easily add more start bytes
+constexpr uint8_t startBytesSize = sizeof(startBytes) / sizeof(startBytes[0]);
+constexpr uint8_t minPacketSize = startBytesSize + 4;
+constexpr uint8_t PACKET_TIMEOUT = 100; // ms
 
-// Debug flag for serial output
+// Debug flag for local debugging
 constexpr bool DEBUG_MODE { true };
 
 // Copy last packet sent, in case of communication error
@@ -36,43 +40,49 @@ void receiveUARTData() {
     static uint8_t localBuffer[UART_BUFFER_SIZE]; // Store per-packet data
     uint8_t localIndex = 0; // Local index per packet
 
-    if (DEBUG_MODE) {
-        Serial.print("Recieving: ");
-    }
-
     while (Serial1.available()) {
         uint8_t incomingByte = Serial1.read();
         lastByteTime = millis(); // Update last received timestamp
 
-        if (DEBUG_MODE) {
-            Serial.print(incomingByte, HEX);
-            Serial.print(" ");
-        }
-
         switch (state) {
             case ReceiveState::SYNC:
-                if (incomingByte == Header1 && localIndex == 0) {
-                    localIndex++;
+                if ((localIndex < startBytesSize - 1) && (incomingByte == startBytes[localIndex])) {
+                    localBuffer[localIndex++] = incomingByte;
                 } 
-                else if (incomingByte == Header2 && localIndex == 1) {
-                    localIndex++;  // Reset index; real data starts after this
+                else if ((localIndex == startBytesSize - 1) && (incomingByte == startBytes[localIndex])) {
+                    localBuffer[localIndex++] = incomingByte;
                     state = ReceiveState::LENGTH;
+
+                    Debug::info("Recieving: ", DEBUG_MODE);
                 } 
                 else {
+                    Debug::printHex(localBuffer, localIndex, DEBUG_MODE);
+                    Debug::print("\n", DEBUG_MODE);
+                    Debug::warnln("Out of sync", DEBUG_MODE);
+                    
                     localIndex = 0;  // Reset if bytes are out of sync
                 }
                 break;
 
             case ReceiveState::LENGTH:
-                expectedLength = incomingByte + 2;  // Read packet length byte and add 2 for headers
+                expectedLength = incomingByte + startBytesSize;  // Read packet length byte and add for headers
 
                 // Validate length
-                if (static_cast<size_t>(expectedLength) > sizeof(localBuffer) || expectedLength < minPacketSize) { 
-                    sendCommunicationError(ErrorCode::BUFFER_OVERFLOW);
+                if (static_cast<size_t>(expectedLength) > sizeof(localBuffer) || expectedLength < minPacketSize - startBytesSize) {
 
+                    Debug::printHex(localBuffer, localIndex, DEBUG_MODE);
+                    Debug::print("\n", DEBUG_MODE); 
+                    Debug::warnln("Length is either too long or too short", DEBUG_MODE);
+
+                    sendCommunicationError(ErrorCode::BUFFER_OVERFLOW);
                     errorCount++;
+
                     if (errorCount > 5) {  // If more than 5 bad packets in a row, flush to resync
-                        if (DEBUG_MODE) Serial.println("[WARNING] Too many errors, flushing UART buffer");
+
+                        Debug::printHex(localBuffer, localIndex, DEBUG_MODE);
+                        Debug::print("\n", DEBUG_MODE); 
+                        Debug::warnln("Too many errors, flushing UART buffer", DEBUG_MODE);
+
                         while (Serial1.available()) Serial1.read();
                         errorCount = 0;
                     }
@@ -87,7 +97,12 @@ void receiveUARTData() {
             case ReceiveState::DATA:
                 if (localIndex < expectedLength) {  // Prevent buffer overflow
                     localBuffer[localIndex++] = incomingByte;
+
                 } else {
+                    Debug::printHex(localBuffer, localIndex, DEBUG_MODE);
+                    Debug::print("\n", DEBUG_MODE); 
+                    Debug::warnln("Somehow got too much data", DEBUG_MODE);
+
                     sendCommunicationError(ErrorCode::BUFFER_OVERFLOW);
                     state = ReceiveState::SYNC;
                     return;
@@ -95,11 +110,14 @@ void receiveUARTData() {
 
                 // Process the packet when full length is received
                 if (localIndex >= expectedLength) {
-                    if (validatePacketCRC(localBuffer, expectedLength)) { 
+                    Debug::printHex(localBuffer, localIndex, DEBUG_MODE);
+                    Debug::print("\n", DEBUG_MODE); 
+
+                    if (validatePacketCRC(localBuffer, expectedLength)) {
                         processReceivedPacket(localBuffer, expectedLength);
                         errorCount = 0;  // Reset error count on successful reception
                     } else {
-                        Serial.print("Error here");
+                        Debug::warnln("Checksum error", DEBUG_MODE);
                         sendCommunicationError(ErrorCode::CHECKSUM_ERROR);
                     }
                     state = ReceiveState::SYNC;
@@ -110,8 +128,10 @@ void receiveUARTData() {
     }
 
     // Timeout Handling - Prevent stuck state if bytes stop arriving
-    if (state != ReceiveState::SYNC && millis() - lastByteTime > PACKET_TIMEOUT) {
-        if (DEBUG_MODE) Serial.println("[ERROR] Packet Timeout - Resetting State Machine");
+    if (state != ReceiveState::SYNC && (millis() - lastByteTime > PACKET_TIMEOUT)) {
+        Debug::printHex(localBuffer, localIndex, DEBUG_MODE);
+        Debug::print("\n", DEBUG_MODE); 
+        Debug::warnln("Packet Timeout - Resetting State Machine", DEBUG_MODE);
         state = ReceiveState::SYNC;
         localIndex = 0;
         expectedLength = 0;
@@ -122,10 +142,10 @@ void receiveUARTData() {
 void processReceivedPacket(const uint8_t* packet, uint8_t packetSize) {
     if (packetSize < minPacketSize) return;  // Minimum packet size check
 
-    if (DEBUG_MODE) Serial.print("Processing packet: ");
+    Debug::infoln("Processing packet: ", DEBUG_MODE);
 
     // Extract command and process
-    MainCommand command = static_cast<MainCommand>(packet[3]);
+    MainCommand command = static_cast<MainCommand>(packet[startBytesSize + 1]); // start bytes, length and then main command
     switch (command) {
         case MainCommand::REQUEST_STATUS:
             sendRespondStatus();
@@ -190,10 +210,12 @@ void sendPacket(MainCommand command, const uint8_t* payload, uint8_t payloadLeng
     uint8_t packet[UART_BUFFER_SIZE];
 
     // Construct packet
-    packet[0] = Header1; 
-    packet[1] = Header2;
-    packet[2] = packetSize - 2;
-    packet[3] = static_cast<uint8_t>(command);
+    for (uint8_t i = 0; i < startBytesSize; i++)
+    {
+        packet[i] = startBytes[i];
+    }    
+    packet[startBytesSize] = packetSize - 2;                        // Add the length right after start bytes
+    packet[startBytesSize + 1] = static_cast<uint8_t>(command);     // Add the command next
 
     // Copy payload if present
     if (payloadLength > 0) {
@@ -203,15 +225,10 @@ void sendPacket(MainCommand command, const uint8_t* payload, uint8_t payloadLeng
     // Generate CRC correctly
     makePacketCRC(packet, packetSize);
 
-    // Debug output (single print for efficiency)
-    if (DEBUG_MODE) {
-        Serial.print("\nSent: ");
-        for (size_t i = 0; i < packetSize; i++) {
-            Serial.print(packet[i], HEX);
-            Serial.print(" ");
-        }
-        Serial.println();
-    }
+    // Debug output
+    Debug::info("Sent: ", DEBUG_MODE);
+    Debug::printHex(packet, packetSize, DEBUG_MODE);
+    Debug::print("\n");
 
     // Store last sent packet for potential retransmission
     storePreviousPacket(packet, packetSize);
@@ -256,49 +273,41 @@ void storePreviousPacket(const uint8_t packet[UART_BUFFER_SIZE], uint8_t size) {
 
 void makePacketCRC(uint8_t* packet, uint8_t packetSize) {
     if (packet == nullptr || packetSize < minPacketSize) {
-        if (DEBUG_MODE) Serial.println("[ERROR] Invalid packet or length in makePacketCRC!");
+        Debug::errorln("Invalid packet or length in makePacketCRC!", DEBUG_MODE);
         return;
     }
-
-    // Compute CRC-16 from index 2 (excluding headers, including length byte)
-    crc16.reset();
-    crc16.add(&packet[2], packetSize - 4);
-    uint16_t crc = crc16.calc();
+    
+    uint16_t crc = calculateCRC16(packet, packetSize);
 
     // Append CRC to the end of the packet
     packet[packetSize - 2] = crc & 0xFF;
     packet[packetSize - 1] = (crc >> 8) & 0xFF;
 
-    if (DEBUG_MODE) {
-        Serial.print("Generated CRC: ");
-        Serial.print(crc, HEX);
-        Serial.println();
-    }
+    Debug::infoln("Generated CRC: " + String(crc, HEX), DEBUG_MODE);
+
 }
 
 bool validatePacketCRC(const uint8_t* packet, uint8_t packetSize) {
     if (packet == nullptr || packetSize < minPacketSize) {
-        if (DEBUG_MODE) Serial.println("[ERROR] Invalid packet or length in validatePacketCRC!");
+        Debug::errorln("Invalid packet or length in validatePacketCRC!", DEBUG_MODE);
         return false;
     }
 
     // Extract received CRC from the last two bytes
     uint16_t receivedCRC = (packet[packetSize - 2] | (packet[packetSize - 1] << 8));
 
-    // Compute CRC-16 from index 2 (excluding headers, including length byte)
-    crc16.reset();
-    crc16.add(&packet[2], packetSize - 4);
-    uint16_t computedCRC = crc16.calc();
+    uint16_t computedCRC = calculateCRC16(packet, packetSize);
 
-    if (DEBUG_MODE) {
-        Serial.print("\nComputed CRC: ");
-        Serial.print(computedCRC, HEX);
-        Serial.print(" | Received CRC: ");
-        Serial.println(receivedCRC, HEX);
-    }
+    Debug::infoln("Computed CRC: " + String(computedCRC, HEX) + " | Received CRC: " + String(receivedCRC, HEX), DEBUG_MODE);
 
     return computedCRC == receivedCRC;
 }
 
+uint16_t calculateCRC16(const uint8_t* packet, uint8_t packetSize) {
+    // Compute CRC-16 (excluding headers, including length byte)
+    crc16.reset();
+    crc16.add(&packet[startBytesSize], packetSize - (startBytesSize + 2));
+    return crc16.calc();
+}
 
 } // namespace UART_communication
