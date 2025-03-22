@@ -66,7 +66,6 @@ void receiveUARTData() {
 
             case ReceiveState::LENGTH:
                 expectedLength = incomingByte + startBytesSize;  // Read packet length byte and add for headers
-
                 // Validate length
                 if (static_cast<size_t>(expectedLength) > sizeof(localBuffer) || expectedLength < minPacketSize - startBytesSize) {
 
@@ -214,12 +213,12 @@ void sendPacket(MainCommand command, const uint8_t* payload, uint8_t payloadLeng
     {
         packet[i] = startBytes[i];
     }    
-    packet[startBytesSize] = packetSize - 2;                        // Add the length right after start bytes
+    packet[startBytesSize] = packetSize - startBytesSize;           // Add the length right after start bytes
     packet[startBytesSize + 1] = static_cast<uint8_t>(command);     // Add the command next
 
     // Copy payload if present
     if (payloadLength > 0) {
-        memcpy(&packet[4], payload, payloadLength);
+        memcpy(&packet[(startBytesSize + 2)], payload, payloadLength);  // payload copied in after startbytes, length and command
     }
 
     // Generate CRC correctly

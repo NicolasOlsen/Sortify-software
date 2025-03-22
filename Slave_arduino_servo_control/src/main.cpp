@@ -27,8 +27,8 @@ void loop() {
     if (currentTime - previousTime >= interval) {
         previousTime += interval;
 
-        // Debug::infoln("Requesting Status...");
-        // sendRequest(MainCommand::REQUEST_STATUS);
+        Debug::infoln("Requesting Status...");
+        sendRequest(MainCommand::REQUEST_STATUS);
 
         receiveUARTData();  // Read and process response
 
