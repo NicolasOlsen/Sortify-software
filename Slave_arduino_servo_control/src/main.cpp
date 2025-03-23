@@ -6,8 +6,10 @@
 using namespace Com_code;
 using namespace UART_communication;
 
-unsigned long previousTime = millis();
-const unsigned long interval = 200;
+unsigned long previousRequestTime = millis();
+unsigned long previousRecieveTime = millis();
+const unsigned long intervalRequest = 200;
+const unsigned long intervalRecieve = 50;
 
 void sendRequest(MainCommand command);
 
@@ -24,15 +26,17 @@ void setup() {
 void loop() {
     unsigned long currentTime = millis();
 
-    if (currentTime - previousTime >= interval) {
-        previousTime += interval;
+    if (currentTime - previousRequestTime >= intervalRequest) {
+        previousRequestTime += intervalRequest;
 
         Debug::infoln("Requesting Status...");
         sendRequest(MainCommand::REQUEST_STATUS);
+    }
+
+    if (currentTime - previousRecieveTime >= intervalRecieve) {
+        previousRecieveTime += intervalRecieve;
 
         receiveUARTData();  // Read and process response
-
-        Debug::infoln("Tick");
     }
 }
 

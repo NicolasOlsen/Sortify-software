@@ -12,8 +12,10 @@ namespace UART_communication {
 constexpr unsigned UART_BUFFER_SIZE { 64 };
 
 // Const values for packet
-constexpr uint8_t startBytes[] { 0xAA, 0x55 };  // Can easily add more start bytes
+constexpr uint8_t startBytes[] { 0xAA, 0x55 };  // Can easily add more start bytes | Has to have at least one
 constexpr uint8_t startBytesSize = sizeof(startBytes) / sizeof(startBytes[0]);
+static_assert(startBytesSize > 0, "startBytesSize must be greater than 0");
+
 constexpr uint8_t minPacketSize = startBytesSize + 4;
 constexpr uint8_t PACKET_TIMEOUT = 100; // ms
 
@@ -46,22 +48,27 @@ void receiveUARTData() {
 
         switch (state) {
             case ReceiveState::SYNC:
-                if ((localIndex < startBytesSize - 1) && (incomingByte == startBytes[localIndex])) {
+                if (localIndex == 0 && incomingByte == startBytes[0]) { // start bytes has to have atleast one
                     localBuffer[localIndex++] = incomingByte;
                 } 
-                else if ((localIndex == startBytesSize - 1) && (incomingByte == startBytes[localIndex])) {
+                else if (localIndex > 0 && incomingByte == startBytes[localIndex]) {
                     localBuffer[localIndex++] = incomingByte;
-                    state = ReceiveState::LENGTH;
-
-                    Debug::info("Recieving: ", DEBUG_MODE);
+                
+                    if (localIndex == startBytesSize) {
+                        state = ReceiveState::LENGTH;
+                        Debug::info("Receiving: ", DEBUG_MODE);
+                    }
                 } 
                 else {
-                    Debug::printHex(localBuffer, localIndex, DEBUG_MODE);
-                    Debug::print("\n", DEBUG_MODE);
-                    Debug::warnln("Out of sync", DEBUG_MODE);
-                    
-                    localIndex = 0;  // Reset if bytes are out of sync
-                }
+                    if constexpr (DEBUG_MODE) {
+                        if (localIndex > 0) {
+                            Debug::printHex(localBuffer, localIndex);
+                            Debug::print("\n");
+                        }
+                        Debug::warnln("Out of sync");
+                    }
+                    localIndex = 0;
+                }                     
                 break;
 
             case ReceiveState::LENGTH:
@@ -205,7 +212,6 @@ void sendPacket(MainCommand command, const uint8_t* payload, uint8_t payloadLeng
         return;
     }
 
-    // Packet buffer (no static)
     uint8_t packet[UART_BUFFER_SIZE];
 
     // Construct packet
@@ -229,8 +235,10 @@ void sendPacket(MainCommand command, const uint8_t* payload, uint8_t payloadLeng
     Debug::printHex(packet, packetSize, DEBUG_MODE);
     Debug::print("\n");
 
-    // Store last sent packet for potential retransmission
-    storePreviousPacket(packet, packetSize);
+    // Store last sent packet for potential retransmission, unless communication error
+    if (command != MainCommand::COMMUNICATION_ERROR) {
+        storePreviousPacket(packet, packetSize);
+    }
 
     // Transmit packet
     Serial1.write(packet, packetSize);
