@@ -14,7 +14,7 @@ constexpr unsigned UART_BUFFER_SIZE { 64 };
 // Const values for packet
 constexpr uint8_t startBytes[] { 0xAA, 0x55 };  // Can easily add more start bytes | Has to have at least one
 constexpr uint8_t startBytesSize = sizeof(startBytes) / sizeof(startBytes[0]);
-static_assert(startBytesSize > 0, "startBytesSize must be greater than 0");
+static_assert(startBytesSize > 0, "StartBytesSize must be greater than 0");
 
 constexpr uint8_t minPacketSize = startBytesSize + 4;
 constexpr uint8_t PACKET_TIMEOUT = 100; // ms
@@ -48,7 +48,7 @@ void receiveUARTData() {
 
         switch (state) {
             case ReceiveState::SYNC:
-                if (localIndex == 0 && incomingByte == startBytes[0]) { // start bytes has to have atleast one
+                if (localIndex == 0 && incomingByte == startBytes[0]) { // Start bytes has to have atleast one
                     localBuffer[localIndex++] = incomingByte;
                 } 
                 else if (localIndex > 0 && incomingByte == startBytes[localIndex]) {
@@ -101,24 +101,13 @@ void receiveUARTData() {
                 break;
 
             case ReceiveState::DATA:
-                if (localIndex < expectedLength) {  // Prevent buffer overflow
-                    localBuffer[localIndex++] = incomingByte;
+                localBuffer[localIndex++] = incomingByte;
 
-                } else {
+                // Check if we've reached or exceeded expected length
+                if (localIndex == expectedLength) {
                     Debug::printHex(localBuffer, localIndex, DEBUG_MODE);
                     Debug::print("\n", DEBUG_MODE); 
-                    Debug::warnln("Somehow got too much data", DEBUG_MODE);
-
-                    sendCommunicationError(ErrorCode::BUFFER_OVERFLOW);
-                    state = ReceiveState::SYNC;
-                    return;
-                }
-
-                // Process the packet when full length is received
-                if (localIndex >= expectedLength) {
-                    Debug::printHex(localBuffer, localIndex, DEBUG_MODE);
-                    Debug::print("\n", DEBUG_MODE); 
-
+                
                     if (validatePacketCRC(localBuffer, expectedLength)) {
                         processReceivedPacket(localBuffer, expectedLength);
                         errorCount = 0;  // Reset error count on successful reception
@@ -126,9 +115,19 @@ void receiveUARTData() {
                         Debug::warnln("Checksum error", DEBUG_MODE);
                         sendCommunicationError(ErrorCode::CHECKSUM_ERROR);
                     }
+                
                     state = ReceiveState::SYNC;
                     return;
-                }
+                
+                } else if (localIndex > expectedLength) {
+                    Debug::printHex(localBuffer, localIndex, DEBUG_MODE);
+                    Debug::print("\n", DEBUG_MODE); 
+                    Debug::warnln("Buffer overflow (too much data)", DEBUG_MODE);
+                
+                    sendCommunicationError(ErrorCode::BUFFER_OVERFLOW);
+                    state = ReceiveState::SYNC;
+                    return;
+                }            
                 break;
         }
     }
@@ -182,7 +181,7 @@ void processReceivedPacket(const uint8_t* packet, uint8_t packetSize) {
             break;
 
         case MainCommand::SYSTEM_CONTROL:
-            // Master sends system control
+            // Master sends system control command
             break;
 
         case MainCommand::REQUEST_ERROR_REPORT:
@@ -215,8 +214,7 @@ void sendPacket(MainCommand command, const uint8_t* payload, uint8_t payloadLeng
     uint8_t packet[UART_BUFFER_SIZE];
 
     // Construct packet
-    for (uint8_t i = 0; i < startBytesSize; i++)
-    {
+    for (uint8_t i = 0; i < startBytesSize; i++) {
         packet[i] = startBytes[i];
     }    
     packet[startBytesSize] = packetSize - startBytesSize;           // Add the length right after start bytes
@@ -290,7 +288,9 @@ void makePacketCRC(uint8_t* packet, uint8_t packetSize) {
     packet[packetSize - 2] = crc & 0xFF;
     packet[packetSize - 1] = (crc >> 8) & 0xFF;
 
-    Debug::infoln("Generated CRC: " + String(crc, HEX), DEBUG_MODE);
+    Debug::infoln("Generated CRC Bytes: " + 
+        String(packet[packetSize - 2], HEX) + " " + 
+        String(packet[packetSize - 1], HEX), DEBUG_MODE);   // Look at CRC to the end of the packet
 
 }
 
@@ -305,7 +305,12 @@ bool validatePacketCRC(const uint8_t* packet, uint8_t packetSize) {
 
     uint16_t computedCRC = calculateCRC16(packet, packetSize);
 
-    Debug::infoln("Computed CRC: " + String(computedCRC, HEX) + " | Received CRC: " + String(receivedCRC, HEX), DEBUG_MODE);
+    Debug::infoln("Computed CRC Bytes: " + 
+        String(computedCRC & 0xFF, HEX) + " " + 
+        String((computedCRC >> 8) & 0xFF, HEX) + 
+        " | Received CRC Bytes: " + 
+        String(receivedCRC & 0xFF, HEX) + " " + 
+        String((receivedCRC >> 8) & 0xFF, HEX), DEBUG_MODE);
 
     return computedCRC == receivedCRC;
 }

@@ -16,9 +16,9 @@ void sendRequest(MainCommand command);
 void setup() {
     System_status::currentStatus = StatusCode::INITIALIZING;
     Debug::init(250000);  // Debugging output to PC
-    UART_init(1000000);  // Initialize UART1
+    UART_init(1000000);  // Initialize UART
 
-    Debug::infoln("Slave Initialized.");
+    Debug::infoln("Initialized.");
 
     System_status::currentStatus = StatusCode::IDLE;
 }
