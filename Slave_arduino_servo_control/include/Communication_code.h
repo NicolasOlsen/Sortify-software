@@ -8,7 +8,7 @@ namespace Com_code {
     // Main Command List
     // =====================
     // These commands are used for communication between the SBC (such as a Raspberry Pi) and the Arduino.
-    // The SBC sends these commands via serial to request information or control the servos.
+    // The SBC sends these commands to request information or control the servos.
     enum class MainCommand : uint8_t {
         REQUEST_STATUS              = 0x01,  // Master requests the system's current status (Arduino responds with RESPOND_STATUS and system state)
         RESPOND_STATUS              = 0x02,  // Arduino responds with the system's current status (IDLE, MOVING, FAULT, etc.)

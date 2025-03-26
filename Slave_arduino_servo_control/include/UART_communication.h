@@ -24,7 +24,7 @@
  * | 0       | Start Byte 1   | 1            | Always `0xAA` (indicates packet start) |
  * | 1       | Start Byte 2   | 1            | Always `0x55` (ensures message framing) |
  * | 2       | Packet Length  | 1            | Total length of the packet **including this byte** but excluding the start bytes |
- * | 3       | Command ID     | 1            | Identifies the command type (see `MainCommand` enum) |
+ * | 3       | Command ID     | 1            | Identifies the command type (see `MainCommand` enum in communication_code.h) |
  * | 4 - N   | Payload        | Variable     | Command-specific data (if applicable) |
  * | Last-1  | CRC-16 (Low)   | 1            | Lower byte of CRC-16 checksum (error detection) |
  * | Last    | CRC-16 (High)  | 1            | Upper byte of CRC-16 checksum |

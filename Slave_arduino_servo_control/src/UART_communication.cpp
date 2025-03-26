@@ -12,7 +12,7 @@ namespace UART_communication {
 constexpr unsigned UART_BUFFER_SIZE { 64 };
 
 // Const values for packet
-constexpr uint8_t startBytes[] { 0xAA, 0x55 };  // Can easily add more start bytes | Has to have at least one
+constexpr uint8_t startBytes[] { 0xAA, 0x55 };  // Can easily add more start bytes, Has to have at least one
 constexpr uint8_t startBytesSize = sizeof(startBytes) / sizeof(startBytes[0]);
 static_assert(startBytesSize > 0, "StartBytesSize must be greater than 0");
 
