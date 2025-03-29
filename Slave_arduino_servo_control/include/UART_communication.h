@@ -89,7 +89,7 @@ namespace UART_communication {
     void UART_init(uint32_t baudRate);
 
     /**
-     * @brief Reads a full UART packet from the buffer after an interrupt.
+     * @brief Reads a full UART packet from the buffer.
      */
     void receiveUARTData();
 

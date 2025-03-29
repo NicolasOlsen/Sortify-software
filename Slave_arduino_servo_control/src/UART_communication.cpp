@@ -36,30 +36,37 @@ void UART_init(uint32_t baudRate) {
 void receiveUARTData() {
     static enum class ReceiveState { SYNC, LENGTH, DATA } state = ReceiveState::SYNC;
     static uint8_t expectedLength = 0; // Expected packet length
-    static unsigned long lastByteTime = 0; // Track last byte received time
-    static int errorCount = 0; // Track consecutive errors, resets periodically
+    static unsigned long packetStartTime = 0;  // Time started receiving the packet
 
     static uint8_t localBuffer[UART_BUFFER_SIZE]; // Store per-packet data
-    uint8_t localIndex = 0; // Local index per packet
+    static uint8_t localIndex = 0;  // Tracks position in sync sequence across calls
+
+
+    // Check for packet timeout
+    if (state != ReceiveState::SYNC && (millis() - packetStartTime > PACKET_TIMEOUT)) {
+        Debug::printHex(localBuffer, localIndex, DEBUG_MODE);
+        Debug::print("\n", DEBUG_MODE);
+        Debug::warnln("Packet Timeout - Resetting State Machine", DEBUG_MODE);
+
+        state = ReceiveState::SYNC;
+        localIndex = 0;
+        expectedLength = 0;
+    }
 
     while (Serial1.available()) {
         uint8_t incomingByte = Serial1.read();
-        lastByteTime = millis(); // Update last received timestamp
 
         switch (state) {
             case ReceiveState::SYNC:
-                if (localIndex == 0 && incomingByte == startBytes[0]) { // Start bytes has to have atleast one
-                    localBuffer[localIndex++] = incomingByte;
-                } 
-                else if (localIndex > 0 && incomingByte == startBytes[localIndex]) {
+                if (localIndex < startBytesSize && incomingByte == startBytes[localIndex]) {
                     localBuffer[localIndex++] = incomingByte;
                 
                     if (localIndex == startBytesSize) {
                         state = ReceiveState::LENGTH;
+                        packetStartTime = millis();
                         Debug::info("Receiving: ", DEBUG_MODE);
                     }
-                } 
-                else {
+                } else {
                     if constexpr (DEBUG_MODE) {
                         if (localIndex > 0) {
                             Debug::printHex(localBuffer, localIndex);
@@ -73,25 +80,16 @@ void receiveUARTData() {
 
             case ReceiveState::LENGTH:
                 expectedLength = incomingByte + startBytesSize;  // Read packet length byte and add for headers
-                // Validate length
-                if (static_cast<size_t>(expectedLength) > sizeof(localBuffer) || expectedLength < minPacketSize - startBytesSize) {
+                
+                if (static_cast<size_t>(expectedLength) > sizeof(localBuffer) || // Validate length
+                    expectedLength < minPacketSize - startBytesSize) {
 
                     Debug::printHex(localBuffer, localIndex, DEBUG_MODE);
                     Debug::print("\n", DEBUG_MODE); 
                     Debug::warnln("Length is either too long or too short", DEBUG_MODE);
 
                     sendCommunicationError(ErrorCode::BUFFER_OVERFLOW);
-                    errorCount++;
 
-                    if (errorCount > 5) {  // If more than 5 bad packets in a row, flush to resync
-
-                        Debug::printHex(localBuffer, localIndex, DEBUG_MODE);
-                        Debug::print("\n", DEBUG_MODE); 
-                        Debug::warnln("Too many errors, flushing UART buffer", DEBUG_MODE);
-
-                        while (Serial1.available()) Serial1.read();
-                        errorCount = 0;
-                    }
                     state = ReceiveState::SYNC;
                     return;
                 }
@@ -110,13 +108,16 @@ void receiveUARTData() {
                 
                     if (validatePacketCRC(localBuffer, expectedLength)) {
                         processReceivedPacket(localBuffer, expectedLength);
-                        errorCount = 0;  // Reset error count on successful reception
                     } else {
                         Debug::warnln("Checksum error", DEBUG_MODE);
                         sendCommunicationError(ErrorCode::CHECKSUM_ERROR);
                     }
                 
+                    // Reset packet tracking
                     state = ReceiveState::SYNC;
+                    localIndex = 0;
+                    expectedLength = 0;
+                    packetStartTime = 0; // Reset timeout timer
                     return;
                 
                 } else if (localIndex > expectedLength) {
@@ -125,22 +126,16 @@ void receiveUARTData() {
                     Debug::warnln("Buffer overflow (too much data)", DEBUG_MODE);
                 
                     sendCommunicationError(ErrorCode::BUFFER_OVERFLOW);
+
+                    // Reset on overflow
                     state = ReceiveState::SYNC;
+                    localIndex = 0;
+                    expectedLength = 0;
+                    packetStartTime = 0;
                     return;
                 }            
                 break;
         }
-    }
-
-    // Timeout Handling - Prevent stuck state if bytes stop arriving
-    if (state != ReceiveState::SYNC && (millis() - lastByteTime > PACKET_TIMEOUT)) {
-        Debug::printHex(localBuffer, localIndex, DEBUG_MODE);
-        Debug::print("\n", DEBUG_MODE); 
-        Debug::warnln("Packet Timeout - Resetting State Machine", DEBUG_MODE);
-        state = ReceiveState::SYNC;
-        localIndex = 0;
-        expectedLength = 0;
-        errorCount = 0;  // Reset error count on timeout
     }
 }
 
