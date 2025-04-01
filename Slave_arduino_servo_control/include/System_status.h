@@ -11,6 +11,10 @@ using namespace Com_code;
 namespace System_status
 {
     extern StatusCode currentStatus;
+
+    extern float setPositions[5];
+
+    extern float currentPositions[5];
 }
 
 

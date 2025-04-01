@@ -16,8 +16,8 @@ void sendRequest(MainCommand command);
 
 void setup() {
     System_status::currentStatus = StatusCode::INITIALIZING;
-    Debug::init(250000);  // Debugging output to PC
-    UART_init(1000000);  // Initialize UART
+    // Debug::init(250000);  // Debugging output to PC
+    // UART_init(1000000);  // Initialize UART
 
     Debug::infoln("Initialized.");
 
@@ -25,20 +25,22 @@ void setup() {
 }
 
 void loop() {
-    unsigned long currentTime = millis();
+    // unsigned long currentTime = millis();
 
-    if (currentTime - previousRequestTime >= intervalRequest) {
-        previousRequestTime += intervalRequest;
+    // if (currentTime - previousRequestTime >= intervalRequest) {
+    //     previousRequestTime += intervalRequest;
 
-        Debug::infoln("Requesting Status...");
-        sendRequest(MainCommand::REQUEST_STATUS);
-    }
+    //     Debug::infoln("Requesting Status...");
+    //     sendRequest(MainCommand::REQUEST_STATUS);
+    // }
 
-    if (currentTime - previousRecieveTime >= intervalRecieve) {
-        previousRecieveTime += intervalRecieve;
+    // if (currentTime - previousRecieveTime >= intervalRecieve) {
+    //     previousRecieveTime += intervalRecieve;
 
-        receiveUARTData();  // Read and process response
-    }
+    //     receiveUARTData();  // Read and process response
+    // }
+
+
 }
 
 // Function to send a request packet to the Slave

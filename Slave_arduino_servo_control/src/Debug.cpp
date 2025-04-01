@@ -1,3 +1,4 @@
+// Included files
 #include "Debug.h"
 
 void Debug::init(uint32_t baudRate) {

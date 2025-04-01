@@ -1,6 +1,6 @@
 // External libraries
 #include <Arduino.h>
 
-// // Included files
+// Included files
 #include "Error_handling.h"
 

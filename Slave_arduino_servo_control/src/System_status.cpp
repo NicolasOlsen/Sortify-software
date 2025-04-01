@@ -1,5 +1,9 @@
 #include "System_status.h"
 
 namespace System_status {
-    StatusCode currentStatus = StatusCode::INITIALIZING;
+    StatusCode currentStatus;
+
+    float setPositions[5];
+
+    float currentPositions[5];
 }
