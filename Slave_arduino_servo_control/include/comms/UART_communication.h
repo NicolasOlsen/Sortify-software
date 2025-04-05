@@ -76,91 +76,87 @@
  * - This structure ensures **efficient and reliable UART communication** between the SBC and the Arduino controlling the robotic arm.
  */
 
+// =====================
+// Function Declarations
+// =====================
+/**
+ * @brief Initializes UART and configures GPIO interrupts for bidirectional communication.
+ * @param baudRate The baud rate for UART communication.
+ */
+void UART_init(uint32_t baudRate);
 
-namespace UART_communication {
+/**
+ * @brief Reads a full UART packet from the buffer.
+ */
+void receiveUARTData();
 
-    // =====================
-    // Function Declarations
-    // =====================
-    /**
-     * @brief Initializes UART and configures GPIO interrupts for bidirectional communication.
-     * @param baudRate The baud rate for UART communication.
-     */
-    void UART_init(uint32_t baudRate);
+/**
+ * @brief Processes a complete packet received via UART.
+ * @param packet The packet to process
+ * @param length The langth of the packet
+ */
+void processReceivedPacket(const uint8_t* packet, uint8_t length);
 
-    /**
-     * @brief Reads a full UART packet from the buffer.
-     */
-    void receiveUARTData();
+/**
+ * @brief Sends a structured UART packet.
+ * @param command The command ID from MainCommand enum.
+ * @param payload Pointer to the payload data.
+ * @param payloadLength Number of bytes in the payload.
+ */
+void sendPacket(Com_code::MainCommand, const uint8_t* payload, uint8_t payloadLength);
 
-    /**
-     * @brief Processes a complete packet received via UART.
-     * @param packet The packet to process
-     * @param length The langth of the packet
-     */
-    void processReceivedPacket(const uint8_t* packet, uint8_t length);
+/**
+ * @brief Sends the current system status
+ */
+void sendRespondStatus();
 
-    /**
-     * @brief Sends a structured UART packet.
-     * @param command The command ID from MainCommand enum.
-     * @param payload Pointer to the payload data.
-     * @param payloadLength Number of bytes in the payload.
-     */
-    void sendPacket(Com_code::MainCommand, const uint8_t* payload, uint8_t payloadLength);
+/**
+ * @brief Sends the current servo positions in one package (Excluding the gripper)
+ */
+void sendServoPositions();
 
-    /**
-     * @brief Sends the current system status
-     */
-    void sendRespondStatus();
+/**
+ * @brief Sends the latest recorded system or servo error
+ */
+void sendRespondErrorReport();
 
-    /**
-     * @brief Sends the current servo positions in one package (Excluding the gripper)
-     */
-    void sendServoPositions();
+/**
+ * @brief Sends notice of communication error and type, so recieving device can try again
+ */
+void sendCommunicationError(Com_code::ErrorCode error);
 
-    /**
-     * @brief Sends the latest recorded system or servo error
-     */
-    void sendRespondErrorReport();
+/**
+ * @brief Send the exact copy of the previous packet, used in case of communication error
+*/
+void sendPrevPacket();
 
-    /**
-     * @brief Sends notice of communication error and type, so recieving device can try again
-     */
-    void sendCommunicationError(Com_code::ErrorCode error);
+/**
+ * @brief Stores the packet in case of communication error
+ * @param packet The packet to be copied
+ * @param size The size of the packet
+ */
+void storePreviousPacket(const uint8_t* packet, uint8_t size);
 
-    /**
-     * @brief Send the exact copy of the previous packet, used in case of communication error
-    */
-    void sendPrevPacket();
+/**
+ * @brief Makes the CRC and adds it to the packet to be sent
+ * @param packet The packet to be send
+ * @param size The size of the packet
+ */
+void makePacketCRC(uint8_t* packet, uint8_t packetSize);
 
-    /**
-     * @brief Stores the packet in case of communication error
-     * @param packet The packet to be copied
-     * @param size The size of the packet
-     */
-    void storePreviousPacket(const uint8_t* packet, uint8_t size);
+/**
+ * @brief Validates the CRC in the recieved packet
+ * @param packet The packet to be validated
+ * @param size The size of the packet
+ */
+bool validatePacketCRC(const uint8_t* packet, uint8_t packetSize);
 
-    /**
-     * @brief Makes the CRC and adds it to the packet to be sent
-     * @param packet The packet to be send
-     * @param size The size of the packet
-     */
-    void makePacketCRC(uint8_t* packet, uint8_t packetSize);
+/**
+ * @brief Helper function for other CRC functions, to keep consistent
+ * @param packet The packet to calculate CRC16
+ * @param size The size of the packet
+ */
+uint16_t calculateCRC16(const uint8_t* packet, uint8_t packetSize);
 
-    /**
-     * @brief Validates the CRC in the recieved packet
-     * @param packet The packet to be validated
-     * @param size The size of the packet
-     */
-    bool validatePacketCRC(const uint8_t* packet, uint8_t packetSize);
-
-    /**
-     * @brief Helper function for other CRC functions, to keep consistent
-     * @param packet The packet to calculate CRC16
-     * @param size The size of the packet
-     */
-    uint16_t calculateCRC16(const uint8_t* packet, uint8_t packetSize);
-
-}
 
 #endif // UART_COMMUNICATION_H

@@ -1,49 +1,40 @@
 #include <Arduino.h>
+#include <Arduino_FreeRTOS.h>
+#include <DynamixelShield.h>
 
-#include "System_status.h"
-#include "Debug.h"
-#include "UART_communication.h"
+#include "shared/SharedServoData.h"
+#include "control/ServoInit.h"
 
-using namespace Com_code;
-using namespace UART_communication;
+#include "tasks/taskCommunication.h"
+#include "tasks/taskServoReader.h"
+#include "tasks/taskServoSetter.h"
+#include "tasks/taskErrorHandler.h"
+#include "tasks/taskServoTuner.h"
 
-unsigned long previousRequestTime = millis();
-unsigned long previousRecieveTime = millis();
-const unsigned long intervalRequest = 200;
-const unsigned long intervalRecieve = 50;
+#include "utils/Debug.h"
 
-void sendRequest(MainCommand command);
+constexpr bool DEBUG_MODE = true;
+
+constexpr uint32_t baudrate = 1000000;
 
 void setup() {
-    System_status::currentStatus = StatusCode::INITIALIZING;
-    // Debug::init(250000);  // Debugging output to PC
-    // UART_init(1000000);  // Initialize UART
+    Debug::init(baudrate);
+    while (!Serial1);
+    Debug::infoln("Initializing", DEBUG_MODE);
 
-    Debug::infoln("Initialized.");
+    InitServoDataMutexes();
+    InitServoSystem();
 
-    System_status::currentStatus = StatusCode::IDLE;
+    // Start all tasks
+    createTaskCommunication();
+    createTaskServoReader();
+    // createTaskServoSetter();
+    createTaskErrorHandler();
+    createTaskServoTuner();
+
+    vTaskStartScheduler();
 }
 
 void loop() {
-    // unsigned long currentTime = millis();
-
-    // if (currentTime - previousRequestTime >= intervalRequest) {
-    //     previousRequestTime += intervalRequest;
-
-    //     Debug::infoln("Requesting Status...");
-    //     sendRequest(MainCommand::REQUEST_STATUS);
-    // }
-
-    // if (currentTime - previousRecieveTime >= intervalRecieve) {
-    //     previousRecieveTime += intervalRecieve;
-
-    //     receiveUARTData();  // Read and process response
-    // }
-
-
-}
-
-// Function to send a request packet to the Slave
-void sendRequest(MainCommand command) {
-    sendPacket(command, nullptr, 0);
+  // Not used with FreeRTOS
 }

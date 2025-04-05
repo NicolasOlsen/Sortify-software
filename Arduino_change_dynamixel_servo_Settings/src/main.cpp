@@ -8,7 +8,7 @@ using namespace ControlTableItem;
 const float DXL_PROTOCOL_VERSION = 2.0;
 
 // What you want to set
-const uint8_t NEW_ID = 2;
+const uint8_t NEW_ID = 4;
 const uint32_t NEW_BAUDRATE = 1000000;  // 1 Mbps
 
 // Search range
@@ -79,4 +79,9 @@ void setup() {
 
 void loop() {
   // Nothing to do
+  dxl.setGoalPosition(NEW_ID, 360.0, UNIT_DEGREE);
+  delay(2000);
+
+  dxl.setGoalPosition(NEW_ID, 0.0, UNIT_DEGREE);
+  delay(2000);
 }

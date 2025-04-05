@@ -10,7 +10,7 @@
             "includePath": [
                 "C:/Users/nicol/OneDrive/Skrivebord/Universitet/Bachelor oppgave/Software/Sortify-software/Slave_arduino_servo_control/include",
                 "C:/Users/nicol/OneDrive/Skrivebord/Universitet/Bachelor oppgave/Software/Sortify-software/Slave_arduino_servo_control/src",
-                "C:/Users/nicol/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
+                "C:/Users/nicol/OneDrive/Skrivebord/Universitet/Bachelor oppgave/Software/Sortify-software/Slave_arduino_servo_control/.pio/libdeps/megaatmega2560/FreeRTOS/src",
                 "C:/Users/nicol/OneDrive/Skrivebord/Universitet/Bachelor oppgave/Software/Sortify-software/Slave_arduino_servo_control/.pio/libdeps/megaatmega2560/DynamixelShield/src",
                 "C:/Users/nicol/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
                 "C:/Users/nicol/OneDrive/Skrivebord/Universitet/Bachelor oppgave/Software/Sortify-software/Slave_arduino_servo_control/.pio/libdeps/megaatmega2560/Dynamixel2Arduino/src",
@@ -20,6 +20,7 @@
                 "C:/Users/nicol/OneDrive/Skrivebord/Universitet/Bachelor oppgave/Software/Sortify-software/Slave_arduino_servo_control/.pio/libdeps/megaatmega2560/Unity/src",
                 "C:/Users/nicol/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
                 "C:/Users/nicol/.platformio/packages/framework-arduino-avr/libraries/HID/src",
+                "C:/Users/nicol/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
                 "C:/Users/nicol/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
                 ""
             ],
@@ -28,7 +29,7 @@
                 "path": [
                     "C:/Users/nicol/OneDrive/Skrivebord/Universitet/Bachelor oppgave/Software/Sortify-software/Slave_arduino_servo_control/include",
                     "C:/Users/nicol/OneDrive/Skrivebord/Universitet/Bachelor oppgave/Software/Sortify-software/Slave_arduino_servo_control/src",
-                    "C:/Users/nicol/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
+                    "C:/Users/nicol/OneDrive/Skrivebord/Universitet/Bachelor oppgave/Software/Sortify-software/Slave_arduino_servo_control/.pio/libdeps/megaatmega2560/FreeRTOS/src",
                     "C:/Users/nicol/OneDrive/Skrivebord/Universitet/Bachelor oppgave/Software/Sortify-software/Slave_arduino_servo_control/.pio/libdeps/megaatmega2560/DynamixelShield/src",
                     "C:/Users/nicol/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
                     "C:/Users/nicol/OneDrive/Skrivebord/Universitet/Bachelor oppgave/Software/Sortify-software/Slave_arduino_servo_control/.pio/libdeps/megaatmega2560/Dynamixel2Arduino/src",
@@ -38,6 +39,7 @@
                     "C:/Users/nicol/OneDrive/Skrivebord/Universitet/Bachelor oppgave/Software/Sortify-software/Slave_arduino_servo_control/.pio/libdeps/megaatmega2560/Unity/src",
                     "C:/Users/nicol/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
                     "C:/Users/nicol/.platformio/packages/framework-arduino-avr/libraries/HID/src",
+                    "C:/Users/nicol/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
                     "C:/Users/nicol/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
                     ""
                 ]
@@ -45,6 +47,8 @@
             "defines": [
                 "PLATFORMIO=60118",
                 "ARDUINO_AVR_MEGA2560",
+                "configCHECK_FOR_STACK_OVERFLOW=2",
+                "INCLUDE_uxTaskGetStackHighWaterMark=1",
                 "F_CPU=16000000L",
                 "ARDUINO_ARCH_AVR",
                 "ARDUINO=10808",

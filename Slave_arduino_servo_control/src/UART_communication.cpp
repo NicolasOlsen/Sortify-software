@@ -1,12 +1,11 @@
 #include <CRC16.h>
 
-#include "UART_communication.h"
-#include "System_status.h"
-#include "Debug.h"
+#include "comms/UART_communication.h"
+#include "shared/System_status.h"
+#include "utils/Debug.h"
 
 using namespace Com_code;
 
-namespace UART_communication {
 
 // UART buffer settings
 constexpr unsigned UART_BUFFER_SIZE { 64 };
@@ -316,5 +315,3 @@ uint16_t calculateCRC16(const uint8_t* packet, uint8_t packetSize) {
     crc16.add(&packet[startBytesSize], packetSize - (startBytesSize + 2));
     return crc16.calc();
 }
-
-} // namespace UART_communication

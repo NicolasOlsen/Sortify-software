@@ -81,8 +81,7 @@ namespace Com_code {
         UNKNOWN_COMMAND     = 0x0D,  // Sent an unrecognized command
         BUFFER_OVERFLOW     = 0x0E   // UART buffer overflow detected
     };
-    
-    
+
     // =====================
     // Servo Identifiers
     // =====================

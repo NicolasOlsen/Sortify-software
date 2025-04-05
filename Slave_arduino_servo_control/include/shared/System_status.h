@@ -4,17 +4,13 @@
 #include <Arduino.h>
 #include <stdint.h>
 
-#include "Communication_code.h"
+#include "comms/Communication_code.h"
 
 using namespace Com_code;
 
 namespace System_status
 {
     extern StatusCode currentStatus;
-
-    extern float setPositions[5];
-
-    extern float currentPositions[5];
 }
 
 
