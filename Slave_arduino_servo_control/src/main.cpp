@@ -5,10 +5,10 @@
 #include "shared/SharedServoData.h"
 #include "control/SystemInit.h"
 
-#include "tasks/TaskCommunication.h"
-#include "tasks/TaskServoReader.h"
-#include "tasks/TaskServoSetter.h"
-#include "tasks/TaskThink.h"
+#include "Tasks/TaskCommunication.h"
+#include "Tasks/TaskServoReader.h"
+#include "Tasks/TaskServoSetter.h"
+#include "Tasks/TaskThink.h"
 
 void setup() {
     InitSystem();
