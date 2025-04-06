@@ -3,34 +3,21 @@
 #include <DynamixelShield.h>
 
 #include "shared/SharedServoData.h"
-#include "control/ServoInit.h"
+#include "control/SystemInit.h"
 
-#include "tasks/taskCommunication.h"
-#include "tasks/taskServoReader.h"
-#include "tasks/taskServoSetter.h"
-#include "tasks/taskErrorHandler.h"
-#include "tasks/taskServoTuner.h"
-
-#include "utils/Debug.h"
-
-constexpr bool DEBUG_MODE = true;
-
-constexpr uint32_t baudrate = 1000000;
+#include "tasks/TaskCommunication.h"
+#include "tasks/TaskServoReader.h"
+#include "tasks/TaskServoSetter.h"
+#include "tasks/TaskThink.h"
 
 void setup() {
-    Debug::init(baudrate);
-    while (!Serial1);
-    Debug::infoln("Initializing", DEBUG_MODE);
-
-    InitServoDataMutexes();
-    InitServoSystem();
+    InitSystem();
 
     // Start all tasks
     createTaskCommunication();
     createTaskServoReader();
-    // createTaskServoSetter();
-    createTaskErrorHandler();
-    createTaskServoTuner();
+    createTaskServoSetter();
+    createTaskThink();
 
     vTaskStartScheduler();
 }

@@ -10,6 +10,10 @@
             "includePath": [
                 "C:/Users/nicol/OneDrive/Skrivebord/Universitet/Bachelor oppgave/Software/Sortify-software/Slave_arduino_servo_control/include",
                 "C:/Users/nicol/OneDrive/Skrivebord/Universitet/Bachelor oppgave/Software/Sortify-software/Slave_arduino_servo_control/src",
+                "C:/Users/nicol/OneDrive/Skrivebord/Universitet/Bachelor oppgave/Software/Sortify-software/Slave_arduino_servo_control/.pio/libdeps/megaatmega2560/Adafruit PWM Servo Driver Library",
+                "C:/Users/nicol/OneDrive/Skrivebord/Universitet/Bachelor oppgave/Software/Sortify-software/Slave_arduino_servo_control/.pio/libdeps/megaatmega2560/Adafruit BusIO",
+                "C:/Users/nicol/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
+                "C:/Users/nicol/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
                 "C:/Users/nicol/OneDrive/Skrivebord/Universitet/Bachelor oppgave/Software/Sortify-software/Slave_arduino_servo_control/.pio/libdeps/megaatmega2560/FreeRTOS/src",
                 "C:/Users/nicol/OneDrive/Skrivebord/Universitet/Bachelor oppgave/Software/Sortify-software/Slave_arduino_servo_control/.pio/libdeps/megaatmega2560/DynamixelShield/src",
                 "C:/Users/nicol/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
@@ -20,8 +24,6 @@
                 "C:/Users/nicol/OneDrive/Skrivebord/Universitet/Bachelor oppgave/Software/Sortify-software/Slave_arduino_servo_control/.pio/libdeps/megaatmega2560/Unity/src",
                 "C:/Users/nicol/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
                 "C:/Users/nicol/.platformio/packages/framework-arduino-avr/libraries/HID/src",
-                "C:/Users/nicol/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
-                "C:/Users/nicol/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
                 ""
             ],
             "browse": {
@@ -29,6 +31,10 @@
                 "path": [
                     "C:/Users/nicol/OneDrive/Skrivebord/Universitet/Bachelor oppgave/Software/Sortify-software/Slave_arduino_servo_control/include",
                     "C:/Users/nicol/OneDrive/Skrivebord/Universitet/Bachelor oppgave/Software/Sortify-software/Slave_arduino_servo_control/src",
+                    "C:/Users/nicol/OneDrive/Skrivebord/Universitet/Bachelor oppgave/Software/Sortify-software/Slave_arduino_servo_control/.pio/libdeps/megaatmega2560/Adafruit PWM Servo Driver Library",
+                    "C:/Users/nicol/OneDrive/Skrivebord/Universitet/Bachelor oppgave/Software/Sortify-software/Slave_arduino_servo_control/.pio/libdeps/megaatmega2560/Adafruit BusIO",
+                    "C:/Users/nicol/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
+                    "C:/Users/nicol/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
                     "C:/Users/nicol/OneDrive/Skrivebord/Universitet/Bachelor oppgave/Software/Sortify-software/Slave_arduino_servo_control/.pio/libdeps/megaatmega2560/FreeRTOS/src",
                     "C:/Users/nicol/OneDrive/Skrivebord/Universitet/Bachelor oppgave/Software/Sortify-software/Slave_arduino_servo_control/.pio/libdeps/megaatmega2560/DynamixelShield/src",
                     "C:/Users/nicol/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
@@ -39,8 +45,6 @@
                     "C:/Users/nicol/OneDrive/Skrivebord/Universitet/Bachelor oppgave/Software/Sortify-software/Slave_arduino_servo_control/.pio/libdeps/megaatmega2560/Unity/src",
                     "C:/Users/nicol/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
                     "C:/Users/nicol/.platformio/packages/framework-arduino-avr/libraries/HID/src",
-                    "C:/Users/nicol/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
-                    "C:/Users/nicol/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
                     ""
                 ]
             },
