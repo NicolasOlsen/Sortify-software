@@ -1,7 +1,7 @@
 // Included files
 #include "utils/Debug.h"
 
-#define DEBUG_SERIAL Serial1
+#define DEBUG_SERIAL Serial
 
 void Debug::init(uint32_t baudRate) {
     if constexpr (DEBUG_MODE) {

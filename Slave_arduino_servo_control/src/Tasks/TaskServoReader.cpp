@@ -1,7 +1,6 @@
 #include <Arduino_FreeRTOS.h>
 
 #include "tasks/TaskServoReader.h"
-#include "shared/SharedServoData.h"
 #include "control/ServoControl.h"
 
 #include "utils/Debug.h"

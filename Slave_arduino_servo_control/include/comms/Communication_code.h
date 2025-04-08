@@ -10,25 +10,32 @@ namespace Com_code {
     // These commands are used for communication between the SBC (such as a Raspberry Pi) and the Arduino.
     // The SBC sends these commands to request information or control the servos.
     enum class MainCommand : uint8_t {
-        REQUEST_STATUS              = 0x01,  // Master requests the system's current status (Arduino responds with RESPOND_STATUS and system state)
-        RESPOND_STATUS              = 0x02,  // Arduino responds with the system's current status (IDLE, MOVING, FAULT, etc.)
-        
-        REQUEST_SERVO_POSITIONS     = 0x03,  // Master requests the current positions of all servos (except the gripper)
-        RESPOND_SERVO_POSITIONS     = 0x04,  // Arduino responds with servo positions in order: [Base, Shoulder, Elbow, Wrist]
-        
-        SET_SERVO_POSITION          = 0x05,  // Master sets the position of a specific servo (Requires ServoId and position value)
-        SET_ALL_POSITIONS           = 0x06,  // Master sets positions for all servos except the gripper [Base, Shoulder, Elbow, Wrist]
-        
-        SET_MAX_SPEED               = 0x07,  // Master sets a global speed limit for all servos (0 means dynamic speed based on slowest servo)
-        REQUEST_CURRENT_SPEED       = 0x08,  // Master requests the current speed of a servo (Requires ServoId, 0x00 means the slowest moving servo speed)
-        RESPOND_CURRENT_SPEED       = 0x08,  // Arduino responds with the current speed of a servo (Requires ServoId, 0x00 means the slowest moving servo speed)
-        
-        SYSTEM_CONTROL              = 0x08,  // Master sends a system-wide action command (STOP, RESUME, RESTART) using ControlSubCommand
-        
-        REQUEST_ERROR_REPORT        = 0x09,  // Master requests the latest error report (Arduino responds with RESPOND_ERROR_REPORT)
-        RESPOND_ERROR_REPORT        = 0x0A,  // Arduino responds with the latest recorded error(s)
-        COMMUNICATION_ERROR         = 0x0B   // One of the devices has had a communication error (will send with type of communication error), will make recieving device try again
+        // Status and Health
+        REQUEST_STATUS              = 0x01,  // Master requests the system's current status (Arduino responds with RESPOND_STATUS)
+        RESPOND_STATUS              = 0x02,  // Arduino responds with the system's current state
+        ACKNOWLEDGE                 = 0x03,  // Generic ACK when no specific data is returned
+        HEARTBEAT                   = 0x04,  // Master checks if Arduino is alive (Arduino responds with ACKNOWLEDGE)
+    
+        // Servo Information
+        REQUEST_SERVO_POSITIONS     = 0x05,  // Master requests positions of all servos (excluding gripper)
+        RESPOND_SERVO_POSITIONS     = 0x06,  // Arduino responds with [Base, Shoulder, Elbow, Wrist]
+    
+        REQUEST_CURRENT_SPEED       = 0x07,  // Master requests current speed of a servo (0x00 for slowest)
+        RESPOND_CURRENT_SPEED       = 0x08,  // Arduino responds with current speed of requested servo
+    
+        // Motion Control
+        SET_SERVO_POSITION          = 0x09,  // Master sets a single servo position
+        SET_ALL_POSITIONS           = 0x0A,  // Master sets all positions (excluding gripper)
+        SET_MAX_SPEED               = 0x0B,  // Master sets global max speed
+        SYSTEM_CONTROL              = 0x0C,  // STOP, RESUME, RESTART (requires subcommand)
+    
+        // Fault/Error Reporting
+        REQUEST_ERROR_STATUS        = 0x0D,  // Master requests current error status
+        RESPOND_ERROR_STATUS        = 0x0E,  // Arduino responds with the current error code(s)
+    
+        COMMUNICATION_ERROR         = 0x0F   // Indicates a communication issue was detected
     };
+    
     
     
     // =====================
@@ -60,21 +67,7 @@ namespace Com_code {
     // Error Codes
     // =====================
     // These errors are reported with ERROR_REPORT.
-    enum class ErrorCode : uint8_t {
-        // Errors directly from Dynamixel status packet
-        SERVO_VOLTAGE_ERROR     = 0x01,  // Voltage out of range (Dynamixel ERRBIT_VOLTAGE)
-        SERVO_ANGLE_LIMIT_ERROR = 0x02,  // Commanded angle out of limit (Dynamixel ERRBIT_ANGLE)
-        SERVO_OVERHEAT_ERROR    = 0x03,  // Overheating detected (Dynamixel ERRBIT_OVERHEATING)
-        SERVO_RANGE_ERROR       = 0x04,  // Out of range (Dynamixel ERRBIT_RANGE)
-        SERVO_CHECKSUM_ERROR    = 0x05,  // Checksum mismatch in response (Dynamixel ERRBIT_CHECKSUM)
-        SERVO_OVERLOAD_ERROR    = 0x06,  // Overload detected (Dynamixel ERRBIT_OVERLOAD)
-        SERVO_INSTRUCTION_ERROR = 0x07,  // Invalid instruction received by servo (Dynamixel ERRBIT_INSTRUCTION)
-    
-        // Errors inferred by Arduino
-        SERVO_POSITION_ERROR    = 0x08,  // Servo didn't reach target position in time
-        SERVO_RESPONSE_TIMEOUT  = 0x09,  // Timeout waiting for servo response
-        SERVO_BAUDRATE_ERROR    = 0x0A,  // Baudrate mismatch detected
-    
+    enum class ComErrorCode : uint8_t {    
         // SBC ↔ Arduino Communication Errors
         COMM_TIMEOUT        = 0x0B,  // Timeout waiting for full command
         CHECKSUM_ERROR      = 0x0C,  // Invalid checksum received

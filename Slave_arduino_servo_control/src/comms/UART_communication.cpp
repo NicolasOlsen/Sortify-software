@@ -19,7 +19,9 @@ constexpr uint8_t minPacketSize = startBytesSize + 4;
 constexpr uint8_t PACKET_TIMEOUT = 100; // ms
 
 // Debug flag for local debugging
-constexpr bool DEBUG_MODE { true };
+constexpr bool DEBUG_MODE = true;
+
+#define COMM_SERIAL Serial1    // For easy changing of serial
 
 // Copy last packet sent, in case of communication error
 uint8_t prevPacket[UART_BUFFER_SIZE] {};
@@ -29,7 +31,7 @@ CRC16 crc16;
 
 
 void UART_init(uint32_t baudRate) {
-    Serial1.begin(baudRate);
+    COMM_SERIAL.begin(baudRate);
 }
 
 void receiveUARTData() {
@@ -52,8 +54,8 @@ void receiveUARTData() {
         expectedLength = 0;
     }
 
-    while (Serial1.available()) {
-        uint8_t incomingByte = Serial1.read();
+    while (COMM_SERIAL.available()) {
+        uint8_t incomingByte = COMM_SERIAL.read();
 
         switch (state) {
             case ReceiveState::SYNC:
@@ -87,7 +89,7 @@ void receiveUARTData() {
                     Debug::print("\n", DEBUG_MODE); 
                     Debug::warnln("Length is either too long or too short", DEBUG_MODE);
 
-                    sendCommunicationError(ErrorCode::BUFFER_OVERFLOW);
+                    sendCommunicationError(ComErrorCode::BUFFER_OVERFLOW);
 
                     state = ReceiveState::SYNC;
                     return;
@@ -109,7 +111,7 @@ void receiveUARTData() {
                         processReceivedPacket(localBuffer, expectedLength);
                     } else {
                         Debug::warnln("Checksum error", DEBUG_MODE);
-                        sendCommunicationError(ErrorCode::CHECKSUM_ERROR);
+                        sendCommunicationError(ComErrorCode::CHECKSUM_ERROR);
                     }
                 
                     // Reset packet tracking
@@ -124,7 +126,7 @@ void receiveUARTData() {
                     Debug::print("\n", DEBUG_MODE); 
                     Debug::warnln("Buffer overflow (too much data)", DEBUG_MODE);
                 
-                    sendCommunicationError(ErrorCode::BUFFER_OVERFLOW);
+                    sendCommunicationError(ComErrorCode::BUFFER_OVERFLOW);
 
                     // Reset on overflow
                     state = ReceiveState::SYNC;
@@ -147,51 +149,44 @@ void processReceivedPacket(const uint8_t* packet, uint8_t packetSize) {
     MainCommand command = static_cast<MainCommand>(packet[startBytesSize + 1]); // start bytes, length and then main command
     switch (command) {
         case MainCommand::REQUEST_STATUS:
-            sendRespondStatus();
+            Debug::print("RS recieved");
             break;
 
-        case MainCommand::RESPOND_STATUS:
-            // Respond code for Arduino
+        case MainCommand::HEARTBEAT:
+            Debug::print("HB recieved");
             break;
         
         case MainCommand::REQUEST_SERVO_POSITIONS:
-            sendServoPositions();   // Master asks for servo positions
-            break;
-
-        case MainCommand::RESPOND_SERVO_POSITIONS:
-            // Respond with current servo positions
+            Debug::print("RSP recieved");
             break;
 
         case MainCommand::SET_SERVO_POSITION:
-            // Function to set a single servo to a position
+            Debug::print("SSP recieved");
             break;
 
         case MainCommand::SET_ALL_POSITIONS:
-            // Function to set all arm movement servos [Base, Shoulder, Elbow, Wrist]
+            Debug::print("SAP recieved");
             break;
 
         case MainCommand::SET_MAX_SPEED:
-            // Function to set max speed
+            Debug::print("SMS recieved");
             break;
 
         case MainCommand::SYSTEM_CONTROL:
-            // Master sends system control command
+            Debug::print("SC recieved");
             break;
 
-        case MainCommand::REQUEST_ERROR_REPORT:
-            // Master requests error report
-            break;
-
-        case MainCommand::RESPOND_ERROR_REPORT:
-            sendRespondErrorReport();
+        case MainCommand::REQUEST_ERROR_STATUS:
+            Debug::print("RES");
             break;
 
         case MainCommand::COMMUNICATION_ERROR:
-            sendPrevPacket();
+            // sendPrevPacket();
+            Debug::print("CE recieved");
             break;
         
         default:
-            sendCommunicationError(ErrorCode::UNKNOWN_COMMAND);
+            sendCommunicationError(ComErrorCode::UNKNOWN_COMMAND);
             break;
     }
 }
@@ -201,7 +196,7 @@ void sendPacket(MainCommand command, const uint8_t* payload, uint8_t payloadLeng
     // Ensure the packet size does not exceed buffer size
     uint8_t packetSize = minPacketSize + payloadLength;
     if (packetSize > UART_BUFFER_SIZE) {
-        sendCommunicationError(ErrorCode::BUFFER_OVERFLOW);
+        sendCommunicationError(ComErrorCode::BUFFER_OVERFLOW);
         return;
     }
 
@@ -233,7 +228,7 @@ void sendPacket(MainCommand command, const uint8_t* payload, uint8_t payloadLeng
     }
 
     // Transmit packet
-    Serial1.write(packet, packetSize);
+    COMM_SERIAL.write(packet, packetSize);
 }
 
 
@@ -255,14 +250,14 @@ void sendRespondErrorReport() {
 }
 
 
-void sendCommunicationError(ErrorCode error) {
-    uint8_t errorCode = static_cast<uint8_t>(error);
-    sendPacket(MainCommand::COMMUNICATION_ERROR, &errorCode, 1);
+void sendCommunicationError(ComErrorCode error) {
+    uint8_t ComErrorCode = static_cast<uint8_t>(error);
+    sendPacket(MainCommand::COMMUNICATION_ERROR, &ComErrorCode, 1);
 }
 
 
 void sendPrevPacket() {
-    Serial1.write(prevPacket, prevPacketSize);
+    COMM_SERIAL.write(prevPacket, prevPacketSize);
 }
 
 void storePreviousPacket(const uint8_t packet[UART_BUFFER_SIZE], uint8_t size) {

@@ -1,7 +1,5 @@
 #include "control/ServoControl.h"
-
-
-#include "shared/SharedServoData.h"
+#include "shared/SharedServoState.h"
 #include "utils/Debug.h"
 
 constexpr bool DEBUG_MODE = true;
@@ -32,16 +30,16 @@ bool PingServo(uint8_t id) {
 
     Debug::errorln(String(id) + " Failed ping, error " + String(lastError), DEBUG_MODE);
 
-    SetCurrentErrorCode(id, lastError);
+    servoErrors.Set(id, lastError);
     return false;
 }
 
 void SetSmartServoPosition(uint8_t id) {
-    if(!GetGoalPositionFlag(id)) return;  // Check if the position has not been changed
+    
+    if(!goalPositions.GetFlag(id)) return;  // Check if the position has not been changed
 
-    if (dxl.setGoalPosition(id, GetGoalPosition(id), UNIT_DEGREE)) {  // Is true if succesfull
-        SetGoalPositionFlag(id, false);   // Set position flag to false since it has been changed
-        Debug::infoln("Servo " + String(id) + " sucesfully set", DEBUG_MODE);
+    if (dxl.setGoalPosition(id, goalPositions.Get(id, true), UNIT_DEGREE)) {  // Is true if succesfull // Set position flag to false since it has been changed
+        Debug::infoln("Servo " + String(id) + " successfully set", DEBUG_MODE);
     }
     else {
         Debug::infoln("Servo " + String(id) + " failed set", DEBUG_MODE);
@@ -49,10 +47,9 @@ void SetSmartServoPosition(uint8_t id) {
 }
 
 void SetAnalogServoPosition(uint8_t id) {
-    if(!GetGoalPositionFlag(id)) return;  // Check if the position has not been changed
+    if(!goalPositions.GetFlag(id)) return;  // Check if the position has not been changed
     
-    pwm.setPWM(0, 0, GetGoalPosition(id));
-    SetGoalPositionFlag(id, false);   // Set position flag to false since it has been changed
+    pwm.setPWM(0, 0, degreesToPwm(goalPositions.Get(id, true)));   // Set position flag to false since it has been used
 
     Debug::infoln("Servo " + String(id) + " sucesfully set", DEBUG_MODE);
 }
@@ -65,8 +62,8 @@ void GetServoPosition(uint8_t id) {
 
     if (dxl.getLastLibErrCode() != DXL_LIB_OK) {
         lastError = dxl.getLastLibErrCode();
-        SetCurrentErrorCode(id, lastError);
+        servoErrors.Set(id, lastError);
     } else {
-        SetCurrentPosition(id, currentPosition);
+        currentPositions.Set(id, currentPosition);
     }
 }

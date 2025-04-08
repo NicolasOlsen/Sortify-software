@@ -26,7 +26,7 @@ public:
      * @brief Enable millisecond timestamps in log output.
      * Prepends time since boot in ms like "(12345ms)"
      */
-    static constexpr bool USE_TIMESTAMPS = true;
+    static constexpr bool USE_TIMESTAMPS = false;
 
     /**
      * @brief Initialize the debug system

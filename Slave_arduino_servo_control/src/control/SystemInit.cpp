@@ -2,7 +2,7 @@
 
 #include "control/SystemInit.h"
 #include "control/ServoControl.h"
-#include "shared/SharedServoData.h"
+#include "comms/UART_communication.h"
 #include "utils/Debug.h"
 
 #include "utils/Debug.h"
@@ -18,8 +18,9 @@ constexpr uint16_t AnalogServoFreq = 50;    // Analog servos run at ~50 Hz updat
 
 void InitSystem() {
     Debug::init(baudrateCom);
-    while (!Serial1);
     Debug::infoln("Initializing", DEBUG_MODE);
+
+    UART_init(baudrateCom);
 
     // Initialize shared data, mutexes, etc.
     dxl.begin(baudrateDXL);
@@ -30,8 +31,6 @@ void InitSystem() {
 
     pwm.setOscillatorFrequency(27000000);
     pwm.setPWMFreq(AnalogServoFreq);  // Analog servos run at ~50 Hz updates
-
-    InitServoDataMutexes();
 
     for (size_t id = 1; id <= 4; id++) {
         // Get DYNAMIXEL information

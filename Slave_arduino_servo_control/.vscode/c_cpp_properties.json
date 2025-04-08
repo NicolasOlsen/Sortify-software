@@ -51,8 +51,6 @@
             "defines": [
                 "PLATFORMIO=60118",
                 "ARDUINO_AVR_MEGA2560",
-                "configCHECK_FOR_STACK_OVERFLOW=2",
-                "INCLUDE_uxTaskGetStackHighWaterMark=1",
                 "F_CPU=16000000L",
                 "ARDUINO_ARCH_AVR",
                 "ARDUINO=10808",

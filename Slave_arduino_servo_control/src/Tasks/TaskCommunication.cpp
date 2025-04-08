@@ -9,7 +9,7 @@
 constexpr bool DEBUG_MODE = true;
 
 constexpr UBaseType_t task_priority = 3;                // High priority
-constexpr TickType_t TASK_PERIOD = pdMS_TO_TICKS(2000);  // Periodic polling interval
+constexpr TickType_t TASK_PERIOD = pdMS_TO_TICKS(400);  // Periodic polling interval
 
 constexpr uint16_t QUEUE_SIZE = 128;                    // Enough for several packets
 
@@ -22,11 +22,13 @@ static void TaskCommunication(void *pvParameters) {
     Debug::infoln("[T_Comm] started", DEBUG_MODE);
 
     for (;;) {
-        Debug::infoln("[T_Comm]");
+        // Debug::infoln("[T_Comm]");
 
-        for (uint8_t id = 1; id <= 5; id++) {      
-            SetGoalPosition(id, 180.0f);
-          }
+        // for (uint8_t id = 1; id <= 5; id++) {      
+        //     SetGoalPosition(id, 180.0f);
+        // }
+
+        receiveUARTData();
 
         vTaskDelayUntil(&lastWakeTime, TASK_PERIOD);  // Keeps execution periodic
     }

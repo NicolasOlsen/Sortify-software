@@ -2,7 +2,6 @@
 #include <DynamixelShield.h>
 
 #include "tasks/TaskServoSetter.h"
-#include "shared/SharedServoData.h"
 #include "control/ServoControl.h"
 
 #include "utils/Debug.h"

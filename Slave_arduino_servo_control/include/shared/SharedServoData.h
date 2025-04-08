@@ -2,64 +2,146 @@
 #define SHAREDSERVODATA_H
 
 #include <DynamixelShield.h>
+#include <Arduino_FreeRTOS.h>
+#include <semphr.h>
 
-
-void InitServoDataMutexes();
-
-/**
- * @brief Sets the goal servo position in an array, will also set the goal positions flag to true | this has to manually be turned to false again
- * @param id The id of the array you want to get, the id is the equvalent to the servo order, 0 will return doing nothing.
- * @param position The position to be set in the array, in degrees, between 0 and 360
- */
-void SetGoalPosition(uint8_t id, float position);
+#include "utils/Debug.h"
 
 /**
- * @brief Gets the current servo position in an array
- * @param id The id of the array you want to get the id is the equvalent to the servo order, servo ids start at 1, 0 will return -1.0f
- * @return The degree between 0 and 360, returns -1.0f if the id is too high
+ * @brief Shared container for thread-safe access to servo data.
+ * 
+ * @tparam T The type of data to store (e.g., float, enum, etc.)
+ * @tparam size The number of elements in the array.
  */
-float GetGoalPosition(uint8_t id);
+template <typename T, uint8_t size>
+class SharedServoData
+{
+private:
+    T arr_m[size] = {0};
+    bool flags_m[size] = {false};
+    SemaphoreHandle_t mutex;
 
-/**
- * @brief Gets the flag for goal position for the id
- * @param id The id of the array you want to get the id is the equvalent to the servo order, servo ids start at 1, 0 will return false
- * @return The flag of the id
- */
-bool GetGoalPositionFlag(uint8_t id);
+public:
+    /**
+     * @brief Initializes the shared data container and creates its mutex.
+     */
+    SharedServoData();
 
-/**
- * @brief Gets the flag for goal position for the id
- * @param id The id of the array you want to get the id is the equvalent to the servo order, servo ids start at 1, 0 will return doing nothing
- */
-void SetGoalPositionFlag(uint8_t id, bool flag);
+    /**
+     * @brief Retrieves the data for a given servo with mutex protection.
+     * 
+     * @param id        The ID of the servo (1-based). If the ID is invalid (0 or out of range), the returned value is default-initialized (e.g., 0).
+     * @param changeFlag If true, the updated flag will be cleared after the value is read.
+     * @return The corresponding data value, or default-constructed T if the ID is invalid.
+     */
+    T Get(uint8_t id, bool changeFlag = false);
 
-/**
- * @brief Sets the current servo position in an array
- * @param id The id of the array you want to get the id is the equvalent to the servo order except the gripper, 0 will return doing nothing
- * @param position The position to be set in the array, in degrees, between 0 and 360
- */
-void SetCurrentPosition(uint8_t id, float position);
+    /**
+     * @brief Sets the data for a given servo with mutex protection.
+     * 
+     * @param id         The ID of the servo (1-based). If the ID is invalid (0 or out of range), the operation is ignored.
+     * @param data       The value to set.
+     * @param changeFlag If true, the updated flag will be marked as true after setting.
+     */
+    void Set(uint8_t id, T data, bool changeFlag = true);
 
-/**
- * @brief Gets the current servo position in an array
- * @param id The id of the array you want to get the id is the equvalent to the servo order except the gripper, 0 will return -1.0f
- * @return The degree between 0 and 360, returns -1.0f if the id is too high
- */
-float GetCurrentPosition(uint8_t id);
+    /**
+     * @brief Gets the updated flag for a given servo with mutex protection.
+     * 
+     * @param id The ID of the servo (1-based). If the ID is invalid (0 or out of range), returns false.
+     * @return True if the flag is set, false otherwise.
+     */
+    bool GetFlag(uint8_t id) const;
+
+    /**
+     * @brief Sets the updated flag for a given servo with mutex protection.
+     * 
+     * @param id   The ID of the servo (1-based). If the ID is invalid (0 or out of range), the operation is ignored.
+     * @param flag The flag value to set.
+     */
+    void SetFlag(uint8_t id, bool flag);
+
+private:
+    /**
+     * @brief Converts a 1-based servo ID into a 0-based array index.
+     * 
+     * @param id The servo ID (1-based).
+     * @return The corresponding array index, or -1 if the ID is invalid.
+     */
+    int indexFromId(uint8_t id) const;
+};
 
 
-/**
- * @brief Sets the current error code in an array
- * @param id The id of the array you want to get the id is the equvalent to the servo order except the gripper, 0 will return doing nothing
- * @param position The position to be set in the array, in degrees, between 0 and 360
- */
-void SetCurrentErrorCode(uint8_t id, DXLLibErrorCode_t errorCode);
+template <typename T, uint8_t size>
+SharedServoData<T, size>::SharedServoData() {
+    mutex = xSemaphoreCreateMutex();
+}
 
-/**
- * @brief Gets the current servo position in an array
- * @param id The id of the array you want to get the id is the equvalent to the servo order except the gripper, 0 will return DXL_LIB_ERROR_NULLPTR
- * @return The current servo error, DXL_LIB_OK = 0 = means its OK
- */
-DXLLibErrorCode_t GetCurrentErrorCode(uint8_t id);
+
+template <typename T, uint8_t size>
+int SharedServoData<T, size>::indexFromId(uint8_t id) const {
+    if (id > size) return -1; // Invalid
+    return id - 1;
+}
+
+
+template <typename T, uint8_t size>
+T SharedServoData<T, size>::Get(uint8_t id, bool changeFlag) {
+    T data = 0;     // Safe default
+    int index = indexFromId(id);        // Get proper index, since ids is from 1
+    if (index < 0) return data;
+
+    if (mutex && xSemaphoreTake(mutex, portMAX_DELAY)) {
+        data = arr_m[index];
+
+        if (changeFlag) {           // Optional to change flag
+            flags_m[index] = false;
+        }
+
+        Debug::infoln(String(id) + " got data " + String(data));
+        xSemaphoreGive(mutex);
+    }
+
+    return data;
+}
+
+template <typename T, uint8_t size>
+void SharedServoData<T, size>::Set(uint8_t id, T data, bool changeFlag) {
+    int index = indexFromId(id);
+    if (index < 0) return;
+
+    if (mutex && xSemaphoreTake(mutex, portMAX_DELAY)) {
+        arr_m[index] = data;
+        flags_m[index] = true; // optional: mark it as updated
+        Debug::infoln(String(id) + " set data " + String(data));
+        xSemaphoreGive(mutex);
+    }
+}
+
+template <typename T, uint8_t size>
+bool SharedServoData<T, size>::GetFlag(uint8_t id) const{
+    int index = indexFromId(id);
+    bool flag = false;
+    if (index < 0) return flag;
+
+    if (mutex && xSemaphoreTake(mutex, portMAX_DELAY)) {
+        flag = flags_m[index];
+        Debug::infoln(String(id) + " get flag " + String(flag));
+        xSemaphoreGive(mutex);
+    }
+    return flag;
+}
+
+template <typename T, uint8_t size>
+void SharedServoData<T, size>::SetFlag(uint8_t id, bool flag) {
+    int index = indexFromId(id);
+    if (index < 0) return;
+
+    if (mutex && xSemaphoreTake(mutex, portMAX_DELAY)) {
+        flags_m[index] = flag;
+        Debug::infoln(String(id) + " set flag " + String(flag));
+        xSemaphoreGive(mutex);
+    }
+}
 
 #endif
