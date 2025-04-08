@@ -11,24 +11,6 @@
 class Debug {
 public:
     /**
-     * @brief Global debug enable flag.
-     * If set to false, all Debug calls are stripped at compile time.
-     */
-    static constexpr bool DEBUG_MODE = true;
-
-    /**
-     * @brief Enable ANSI color-coded log output (for terminals that support it).
-     * If set to false, logs will be printed without color.
-     */
-    static constexpr bool USE_COLOR = true;
-
-    /**
-     * @brief Enable millisecond timestamps in log output.
-     * Prepends time since boot in ms like "(12345ms)"
-     */
-    static constexpr bool USE_TIMESTAMPS = false;
-
-    /**
      * @brief Initialize the debug system
      * @param baudRate The baud rate for Serial communication
      */

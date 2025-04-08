@@ -6,7 +6,7 @@
 
 #include "utils/Debug.h"
 
-constexpr bool DEBUG_MODE = true;
+constexpr bool LOCAL_DEBUG = true;
 
 constexpr UBaseType_t task_priority = 0;  // Lowest priority
 constexpr TickType_t TASK_PERIOD = pdMS_TO_TICKS(1000); // Periodic polling interval
@@ -19,10 +19,10 @@ void CheckMovingStatus();
 static void TaskThink(void *pvParameters) {
 	TickType_t lastWakeTime = xTaskGetTickCount();
 
-	Debug::infoln("[T_Think] started", DEBUG_MODE);
+	Debug::infoln("[T_Think] started", LOCAL_DEBUG);
 
 	for (;;) {
-		Debug::infoln("[T_Think]", DEBUG_MODE);
+		Debug::infoln("[T_Think]", LOCAL_DEBUG);
 
 		CheckAndChangeSystemState();
 		

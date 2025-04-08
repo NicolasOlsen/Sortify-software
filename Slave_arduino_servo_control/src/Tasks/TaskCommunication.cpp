@@ -6,7 +6,7 @@
 #include "comms/UART_communication.h"
 #include "utils/Debug.h"
 
-constexpr bool DEBUG_MODE = true;
+constexpr bool LOCAL_DEBUG = true;
 
 constexpr UBaseType_t task_priority = 3;                // High priority
 constexpr TickType_t TASK_PERIOD = pdMS_TO_TICKS(400);  // Periodic polling interval
@@ -19,7 +19,7 @@ QueueHandle_t serial1Queue;  // Global queue handle
 static void TaskCommunication(void *pvParameters) {
     TickType_t lastWakeTime = xTaskGetTickCount();
 
-    Debug::infoln("[T_Comm] started", DEBUG_MODE);
+    Debug::infoln("[T_Comm] started", LOCAL_DEBUG);
 
     for (;;) {
         Debug::infoln("[T_Comm]");

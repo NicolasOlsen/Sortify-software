@@ -1,5 +1,6 @@
 // Included files
 #include "utils/Debug.h"
+#include "config.h"
 
 #define DEBUG_SERIAL Serial
 

@@ -1,5 +1,5 @@
 #include "shared/SharedServoState.h"
 
-SharedServoData<float, servos> goalPositions;
-SharedServoData<float, readableServos> currentPositions;
-SharedServoData<DXLLibErrorCode_t, dynamixelServos> servoErrors;
+SharedServoData<float, TOTAL_SERVO_COUNT> goalPositions;
+SharedServoData<float, SMART_SERVO_COUNT> currentPositions;
+SharedServoData<DXLLibErrorCode_t, SMART_SERVO_COUNT> servoErrors;
