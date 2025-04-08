@@ -10,7 +10,20 @@ using namespace Com_code;
 
 namespace System_status
 {
-    extern StatusCode currentStatus;
+    /**
+     * @brief Initiates the systemstatus mutex
+     */
+    void InitSystemStatusMutex();
+    
+    /**
+     * @brief Safely gets the system state
+     */
+    StatusCode GetSystemState();
+
+    /**
+     * @brief Safely sets the system state
+     */
+    void SetSystemState(StatusCode state);
 }
 
 

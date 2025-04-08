@@ -30,8 +30,8 @@ namespace Com_code {
         SYSTEM_CONTROL              = 0x0C,  // STOP, RESUME, RESTART (requires subcommand)
     
         // Fault/Error Reporting
-        REQUEST_ERROR_STATUS        = 0x0D,  // Master requests current error status
-        RESPOND_ERROR_STATUS        = 0x0E,  // Arduino responds with the current error code(s)
+        REQUEST_ERROR_STATUS        = 0x0D,  // Master requests current error statuses
+        RESPOND_ERROR_STATUS        = 0x0E,  // Arduino responds with the current error codes
     
         COMMUNICATION_ERROR         = 0x0F   // Indicates a communication issue was detected
     };
@@ -55,12 +55,10 @@ namespace Com_code {
     // Arduino sends one of these status codes in response to REQUEST_STATUS.
     enum class StatusCode : uint8_t {
         INITIALIZING        = 0x01,  // System is booting up, not ready yet
-        IDLE                = 0x02,  // Servos is idle
+        IDLE                = 0x02,  // Servos are idle
         MOVING              = 0x03,  // Servos are moving
-        DATA_READY          = 0x04,  // Data is ready to be sent
-        WAITING             = 0x05,  // System is waiting to resume
-        RECOVARABLE_FAULT   = 0x06,  // System is in an error state and is trying to recover (sends the number of errors)
-        UNRECOVARABLE_FAULT = 0x07   // System is in an error state and cannot recover (sends the number of errors)
+        WAITING             = 0x04,  // System is waiting to resume
+        FAULT               = 0x05   // System is in an error state and cannot recover (sends the number of errors)
     };
     
     // =====================
@@ -69,10 +67,10 @@ namespace Com_code {
     // These errors are reported with ERROR_REPORT.
     enum class ComErrorCode : uint8_t {    
         // SBC ↔ Arduino Communication Errors
-        COMM_TIMEOUT        = 0x0B,  // Timeout waiting for full command
-        CHECKSUM_ERROR      = 0x0C,  // Invalid checksum received
-        UNKNOWN_COMMAND     = 0x0D,  // Sent an unrecognized command
-        BUFFER_OVERFLOW     = 0x0E   // UART buffer overflow detected
+        COMM_TIMEOUT        = 0x01,  // Timeout waiting for full command
+        CHECKSUM_ERROR      = 0x02,  // Invalid checksum received
+        UNKNOWN_COMMAND     = 0x03,  // Sent an unrecognized command
+        BUFFER_OVERFLOW     = 0x04   // UART buffer overflow detected
     };
 
     // =====================

@@ -236,7 +236,7 @@ void sendPacket(MainCommand command, const uint8_t* payload, uint8_t payloadLeng
 
 void sendRespondStatus() {
     MainCommand command = MainCommand::RESPOND_STATUS;
-    uint8_t statusCode = static_cast<uint8_t>(System_status::currentStatus);
+    uint8_t statusCode = static_cast<uint8_t>(System_status::GetSystemState());
     sendPacket(command, &statusCode, 1);
 }
 

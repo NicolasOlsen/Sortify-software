@@ -19,7 +19,7 @@ void setup() {
     createTaskCommunication();
     createTaskServoReader();
     createTaskServoSetter();
-    createTaskThink();
+    // createTaskThink();
 
     vTaskStartScheduler();
 }

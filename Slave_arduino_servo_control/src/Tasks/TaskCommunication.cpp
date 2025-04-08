@@ -1,7 +1,7 @@
 #include <Arduino_FreeRTOS.h>
 #include <queue.h>
 
-#include "shared/SharedServoData.h"
+#include "shared/SharedServoState.h"
 #include "tasks/TaskCommunication.h"
 #include "comms/UART_communication.h"
 #include "utils/Debug.h"
@@ -22,13 +22,16 @@ static void TaskCommunication(void *pvParameters) {
     Debug::infoln("[T_Comm] started", DEBUG_MODE);
 
     for (;;) {
-        // Debug::infoln("[T_Comm]");
+        Debug::infoln("[T_Comm]");
 
-        // for (uint8_t id = 1; id <= 5; id++) {      
-        //     SetGoalPosition(id, 180.0f);
-        // }
+        for (uint8_t id = 1; id <= 5; id++) {      
+            goalPositions.Set(id, 180.0f);
+        }
+        for (uint8_t id = 1; id <= 4; id++) {      
+            currentPositions.Get(id);
+        }
 
-        receiveUARTData();
+        // receiveUARTData();
 
         vTaskDelayUntil(&lastWakeTime, TASK_PERIOD);  // Keeps execution periodic
     }

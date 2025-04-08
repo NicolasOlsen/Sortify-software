@@ -20,9 +20,7 @@ static void TaskServoReader(void *pvParameters) {
   for (;;) {
     Debug::infoln("[T_Reader]", DEBUG_MODE);
 
-    for (uint8_t id = 1; id <= 4; id++) {
-      GetServoPosition(id);
-    }
+    ServoControl::StoreCurrentServoPositions();
 
     vTaskDelayUntil(&lastWakeTime, TASK_PERIOD);
   }

@@ -10,7 +10,7 @@
 /**
  * @brief Shared container for thread-safe access to servo data.
  * 
- * @tparam T The type of data to store (e.g., float, enum, etc.)
+ * @tparam T The type of data to store (float, enum, etc.)
  * @tparam size The number of elements in the array.
  */
 template <typename T, uint8_t size>
@@ -44,6 +44,14 @@ public:
      * @param changeFlag If true, the updated flag will be marked as true after setting.
      */
     void Set(uint8_t id, T data, bool changeFlag = true);
+
+    /**
+     * @brief Sets the data for all the servos with mutex protection.
+     * 
+     * @param arr        The array off the servo data to set, in order
+     * @param changeFlag If true, the updated flag will be marked as true after setting.
+     */
+    void Set(const T (&arr)[size], bool changeFlag = true);
 
     /**
      * @brief Gets the updated flag for a given servo with mutex protection.
@@ -115,6 +123,13 @@ void SharedServoData<T, size>::Set(uint8_t id, T data, bool changeFlag) {
         flags_m[index] = true; // optional: mark it as updated
         Debug::infoln(String(id) + " set data " + String(data));
         xSemaphoreGive(mutex);
+    }
+}
+
+template <typename T, uint8_t size>
+void SharedServoData<T, size>::Set(const T (&arr)[size], bool changeFlag) {
+    for (uint8_t id = 1; id <= size; ++id) {
+        Set(id, arr[id-1], changeFlag);
     }
 }
 

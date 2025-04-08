@@ -4,9 +4,12 @@
 
 constexpr bool DEBUG_MODE = true;
 
+namespace ServoControl {
+
 DynamixelShield dxl;
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 
+constexpr uint8_t smartServos = 4;  // Note: this is assuming every servo 4 and less is smart servos
 
 constexpr uint16_t servoMin = 130;              // Minimum pulse length (out of 4096)
 constexpr uint16_t servoMax = 550;              // Maximum pulse length (out of 4096)
@@ -34,7 +37,8 @@ bool PingServo(uint8_t id) {
     return false;
 }
 
-void SetSmartServoPosition(uint8_t id) {
+
+void SetSmartServoToGoalPosition(uint8_t id) {
     
     if(!goalPositions.GetFlag(id)) return;  // Check if the position has not been changed
 
@@ -46,7 +50,8 @@ void SetSmartServoPosition(uint8_t id) {
     }
 }
 
-void SetAnalogServoPosition(uint8_t id) {
+
+void SetAnalogServoToGoalPosition(uint8_t id) {
     if(!goalPositions.GetFlag(id)) return;  // Check if the position has not been changed
     
     pwm.setPWM(0, 0, degreesToPwm(goalPositions.Get(id, true)));   // Set position flag to false since it has been used
@@ -55,7 +60,7 @@ void SetAnalogServoPosition(uint8_t id) {
 }
 
 
-void GetServoPosition(uint8_t id) {
+void StoreCurrentServoPosition(uint8_t id) {
     DXLLibErrorCode_t lastError;
 
     float currentPosition = dxl.getPresentPosition(id, UNIT_DEGREE);
@@ -66,4 +71,21 @@ void GetServoPosition(uint8_t id) {
     } else {
         currentPositions.Set(id, currentPosition);
     }
+}
+
+
+void SetServosToGoalPosition() {
+    for (uint8_t id = 1; id <= smartServos; id++) {
+        SetSmartServoToGoalPosition(id);              // Sets smart servos to the positions saved in the shared goalpositions array
+    }
+    SetAnalogServoToGoalPosition(smartServos + 1);    // Sets analog servo to the position saved in the shared goalpositions array
+}
+
+
+void StoreCurrentServoPositions() {
+    for (uint8_t id = 1; id <= smartServos; id++) {
+        StoreCurrentServoPosition(id);                      // Sets smart servos to the positions saved in the shared goalpositions array
+    }
+}
+
 }
