@@ -1,15 +1,15 @@
 #include <DynamixelShield.h>
 
-#include "control/SystemInit.h"
+#include "control/system_init.h"
 
-#include "config.h"
-#include "control/ServoControl.h"
+#include "config/servo_config.h"
+#include "config/communication_config.h"
+#include "control/servo_control.h"
 #include "comms/UART_communication.h"
-#include "shared/SharedServoState.h"
-#include "shared/System_status.h"
-#include "utils/Debug.h"
+#include "shared/shared_servo_state.h"
+#include "shared/system_status.h"
 
-#include "utils/Debug.h"
+#include "utils/debug.h"
 
 using namespace ServoControl;
 
@@ -38,6 +38,7 @@ void InitSystem() {
         // Get DYNAMIXEL information
         if(ServoControl::PingServo(id) == false) {
             System_status::SetSystemState(StatusCode::FAULT);   // Turn the system to fault mode, but will still ping to update the other servo statuses
+            Debug::errorln("System initiated in fault mode");
             continue;
         }
 

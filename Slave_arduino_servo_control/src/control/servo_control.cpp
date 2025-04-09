@@ -1,6 +1,6 @@
-#include "control/ServoControl.h"
-#include "shared/SharedServoState.h"
-#include "config.h"
+#include "control/servo_control.h"
+#include "shared/shared_servo_state.h"
+
 #include "utils/Debug.h"
 
 namespace ServoControl {
@@ -14,7 +14,7 @@ bool PingServo(uint8_t id) {
     if (dxl.ping(id)) return true;
 
     DXLLibErrorCode_t lastError = dxl.getLastLibErrCode();
-    Debug::errorln(String(id) + " failed ping, error " + String(lastError), DEBUG_MODE);
+    Debug::errorln(String(id) + " failed ping, error " + String(lastError));
 
     servoErrors.Set(id, lastError);
     return false;

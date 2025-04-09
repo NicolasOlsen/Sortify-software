@@ -1,15 +1,14 @@
-#define __INCLUDE_TEMPLATES__  // 👈 Add this BEFORE including the header
+#define __INCLUDE_TEMPLATES__
 
 #include <Arduino.h>
 #include <Arduino_FreeRTOS.h>
-#include <DynamixelShield.h>
 
-#include "control/SystemInit.h"
+#include "control/system_init.h"
 
-#include "Tasks/TaskCommunication.h"
-#include "Tasks/TaskServoReader.h"
-#include "Tasks/TaskServoSetter.h"
-#include "Tasks/TaskThink.h"
+#include "rtos_tasks/task_communication.h"
+#include "rtos_tasks/task_servo_reader.h"
+#include "rtos_tasks/task_servo_setter.h"
+#include "rtos_tasks/task_think.h"
 
 
 void setup() {

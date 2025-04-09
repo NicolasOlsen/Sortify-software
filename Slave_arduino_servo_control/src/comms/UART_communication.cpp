@@ -2,6 +2,7 @@
 
 #include "comms/UART_communication.h"
 #include "shared/System_status.h"
+
 #include "utils/Debug.h"
 
 using namespace Com_code;
@@ -19,7 +20,7 @@ constexpr uint8_t minPacketSize = startBytesSize + 4;
 constexpr uint8_t PACKET_TIMEOUT = 100; // ms
 
 // Debug flag for local debugging
-constexpr bool DEBUG_MODE = true;
+constexpr bool LOCAL_DEBUG = true;
 
 #define COMM_SERIAL Serial1    // For easy changing of serial
 
@@ -45,9 +46,9 @@ void receiveUARTData() {
 
     // Check for packet timeout
     if (state != ReceiveState::SYNC && (millis() - packetStartTime > PACKET_TIMEOUT)) {
-        Debug::printHex(localBuffer, localIndex, DEBUG_MODE);
-        Debug::print("\n", DEBUG_MODE);
-        Debug::warnln("Packet Timeout - Resetting State Machine", DEBUG_MODE);
+        Debug::printHex(localBuffer, localIndex, LOCAL_DEBUG);
+        Debug::print("\n", LOCAL_DEBUG);
+        Debug::warnln("Packet Timeout - Resetting State Machine", LOCAL_DEBUG);
 
         state = ReceiveState::SYNC;
         localIndex = 0;
@@ -65,10 +66,10 @@ void receiveUARTData() {
                     if (localIndex == startBytesSize) {
                         state = ReceiveState::LENGTH;
                         packetStartTime = millis();
-                        Debug::info("Receiving: ", DEBUG_MODE);
+                        Debug::info("Receiving: ", LOCAL_DEBUG);
                     }
                 } else {
-                    if constexpr (DEBUG_MODE) {
+                    if constexpr (LOCAL_DEBUG) {
                         if (localIndex > 0) {
                             Debug::printHex(localBuffer, localIndex);
                             Debug::print("\n");
@@ -85,9 +86,9 @@ void receiveUARTData() {
                 if (static_cast<size_t>(expectedLength) > sizeof(localBuffer) || // Validate length
                     expectedLength < minPacketSize - startBytesSize) {
 
-                    Debug::printHex(localBuffer, localIndex, DEBUG_MODE);
-                    Debug::print("\n", DEBUG_MODE); 
-                    Debug::warnln("Length is either too long or too short", DEBUG_MODE);
+                    Debug::printHex(localBuffer, localIndex, LOCAL_DEBUG);
+                    Debug::print("\n", LOCAL_DEBUG); 
+                    Debug::warnln("Length is either too long or too short", LOCAL_DEBUG);
 
                     sendCommunicationError(ComErrorCode::BUFFER_OVERFLOW);
 
@@ -104,13 +105,13 @@ void receiveUARTData() {
 
                 // Check if we've reached or exceeded expected length
                 if (localIndex == expectedLength) {
-                    Debug::printHex(localBuffer, localIndex, DEBUG_MODE);
-                    Debug::print("\n", DEBUG_MODE); 
+                    Debug::printHex(localBuffer, localIndex, LOCAL_DEBUG);
+                    Debug::print("\n", LOCAL_DEBUG); 
                 
                     if (validatePacketCRC(localBuffer, expectedLength)) {
                         processReceivedPacket(localBuffer, expectedLength);
                     } else {
-                        Debug::warnln("Checksum error", DEBUG_MODE);
+                        Debug::warnln("Checksum error", LOCAL_DEBUG);
                         sendCommunicationError(ComErrorCode::CHECKSUM_ERROR);
                     }
                 
@@ -122,9 +123,9 @@ void receiveUARTData() {
                     return;
                 
                 } else if (localIndex > expectedLength) {
-                    Debug::printHex(localBuffer, localIndex, DEBUG_MODE);
-                    Debug::print("\n", DEBUG_MODE); 
-                    Debug::warnln("Buffer overflow (too much data)", DEBUG_MODE);
+                    Debug::printHex(localBuffer, localIndex, LOCAL_DEBUG);
+                    Debug::print("\n", LOCAL_DEBUG); 
+                    Debug::warnln("Buffer overflow (too much data)", LOCAL_DEBUG);
                 
                     sendCommunicationError(ComErrorCode::BUFFER_OVERFLOW);
 
@@ -143,7 +144,7 @@ void receiveUARTData() {
 void processReceivedPacket(const uint8_t* packet, uint8_t packetSize) {
     if (packetSize < minPacketSize) return;  // Minimum packet size check
 
-    Debug::infoln("Processing packet: ", DEBUG_MODE);
+    Debug::infoln("Processing packet: ", LOCAL_DEBUG);
 
     // Extract command and process
     MainCommand command = static_cast<MainCommand>(packet[startBytesSize + 1]); // start bytes, length and then main command
@@ -218,8 +219,8 @@ void sendPacket(MainCommand command, const uint8_t* payload, uint8_t payloadLeng
     makePacketCRC(packet, packetSize);
 
     // Debug output
-    Debug::info("Sent: ", DEBUG_MODE);
-    Debug::printHex(packet, packetSize, DEBUG_MODE);
+    Debug::info("Sent: ", LOCAL_DEBUG);
+    Debug::printHex(packet, packetSize, LOCAL_DEBUG);
     Debug::print("\n");
 
     // Store last sent packet for potential retransmission, unless communication error
@@ -267,7 +268,7 @@ void storePreviousPacket(const uint8_t packet[UART_BUFFER_SIZE], uint8_t size) {
 
 void makePacketCRC(uint8_t* packet, uint8_t packetSize) {
     if (packet == nullptr || packetSize < minPacketSize) {
-        Debug::errorln("Invalid packet or length in makePacketCRC!", DEBUG_MODE);
+        Debug::errorln("Invalid packet or length in makePacketCRC!", LOCAL_DEBUG);
         return;
     }
     
@@ -279,13 +280,13 @@ void makePacketCRC(uint8_t* packet, uint8_t packetSize) {
 
     Debug::infoln("Generated CRC Bytes: " + 
         String(packet[packetSize - 2], HEX) + " " + 
-        String(packet[packetSize - 1], HEX), DEBUG_MODE);   // Look at CRC to the end of the packet
+        String(packet[packetSize - 1], HEX), LOCAL_DEBUG);   // Look at CRC to the end of the packet
 
 }
 
 bool validatePacketCRC(const uint8_t* packet, uint8_t packetSize) {
     if (packet == nullptr || packetSize < minPacketSize) {
-        Debug::errorln("Invalid packet or length in validatePacketCRC!", DEBUG_MODE);
+        Debug::errorln("Invalid packet or length in validatePacketCRC!", LOCAL_DEBUG);
         return false;
     }
 
@@ -299,7 +300,7 @@ bool validatePacketCRC(const uint8_t* packet, uint8_t packetSize) {
         String((computedCRC >> 8) & 0xFF, HEX) + 
         " | Received CRC Bytes: " + 
         String(receivedCRC & 0xFF, HEX) + " " + 
-        String((receivedCRC >> 8) & 0xFF, HEX), DEBUG_MODE);
+        String((receivedCRC >> 8) & 0xFF, HEX), LOCAL_DEBUG);
 
     return computedCRC == receivedCRC;
 }

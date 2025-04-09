@@ -1,12 +1,12 @@
-#ifndef SERVOCONTROL_H
-#define SERVOCONTROL_H
+#ifndef SERVO_CONTROL_H
+#define SERVO_CONTROL_H
 
 #include <DynamixelShield.h>
 #include <Adafruit_PWMServoDriver.h>
 
-#include "Config.h"                  // Constants like SMART_SERVO_COUNT, servoMin, etc.
-#include "shared/SharedServoState.h" // SharedServoData structure
-#include "utils/Debug.h"             // Logging utilities
+#include "config/servo_config.h"     // Constants like SMART_SERVO_COUNT, servoMin, etc.
+#include "shared/shared_servo_state.h" // SharedServoData structure
+#include "utils/debug.h"             // Logging utilities
 
 namespace ServoControl {
 

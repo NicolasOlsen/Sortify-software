@@ -1,17 +1,13 @@
 #include <Arduino_FreeRTOS.h>
 
-#include "tasks/TaskThink.h"
-#include "shared/SharedServoState.h"
+#include "rtos_tasks/task_think.h"
+#include "config/task_config.h"
+#include "shared/shared_servo_state.h"
 #include "shared/System_status.h"
 
 #include "utils/Debug.h"
 
 constexpr bool LOCAL_DEBUG = true;
-
-constexpr UBaseType_t task_priority = 0;  // Lowest priority
-constexpr TickType_t TASK_PERIOD = pdMS_TO_TICKS(1000); // Periodic polling interval
-
-constexpr uint8_t smartServos = 4;      // To go through all the smart servo errors
 
 void CheckAndChangeSystemState();
 void CheckMovingStatus();
@@ -26,7 +22,7 @@ static void TaskThink(void *pvParameters) {
 
 		CheckAndChangeSystemState();
 		
-		vTaskDelayUntil(&lastWakeTime, TASK_PERIOD);
+		vTaskDelayUntil(&lastWakeTime, THINK_TASK.period);
 	}
   }
 
@@ -34,9 +30,9 @@ void createTaskThink() {
 	xTaskCreate(
 		TaskThink,
 		"Think",
-		256,
+		THINK_TASK.stackSize,
 		NULL,
-		task_priority,
+		THINK_TASK.priority,
 		NULL
 	);
 }
@@ -44,18 +40,18 @@ void createTaskThink() {
 void CheckAndChangeSystemState() {
 	bool isError = false;
 
-	for (uint8_t id = 1; id < smartServos; id++)
+	for (uint8_t id = 1; id <= SMART_SERVO_COUNT; id++)
 	{
 		DXLLibErrorCode_t error = servoErrors.Get(id);
 		if (error != DXL_LIB_OK) {
-		System_status::SetSystemState(StatusCode::FAULT);
-		isError = true;
+			System_status::SetSystemState(StatusCode::FAULT);
+			isError = true;
 		break;
 		}
 	}
 
 	if (isError) {
-		for(uint8_t id = 1; id <= smartServos; id++) {
+		for(uint8_t id = 1; id <= SMART_SERVO_COUNT; id++) {
 			goalPositions.Set(id, currentPositions.Get(id));
 		}
 	}

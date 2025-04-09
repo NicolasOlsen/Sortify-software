@@ -1,10 +1,7 @@
-#ifndef STATUS_H
-#define STATUS_H
+#ifndef SYSTEM_STATUS_H
+#define SYSTEM_STATUS_H
 
-#include <Arduino.h>
-#include <stdint.h>
-
-#include "comms/Communication_code.h"
+#include "comms/communication_code.h"
 
 using namespace Com_code;
 

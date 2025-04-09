@@ -1,17 +1,15 @@
 #include <Arduino_FreeRTOS.h>
 
-#include "tasks/TaskServoReader.h"
-#include "shared/SharedServoState.h"
-#include "control/ServoControl.h"
+#include "rtos_tasks/task_servo_reader.h"
+#include "config/task_config.h"
+#include "shared/shared_servo_state.h"
+#include "control/servo_control.h"
 
-#include "utils/Debug.h"
+#include "utils/debug.h"
 
 using namespace ControlTableItem;
 
 constexpr bool LOCAL_DEBUG = true;
-
-constexpr UBaseType_t task_priority = 2;                // High priority
-constexpr TickType_t TASK_PERIOD = pdMS_TO_TICKS(600);  // Periodic polling interval
 
 static void TaskServoReader(void *pvParameters) {
   TickType_t lastWakeTime = xTaskGetTickCount();
@@ -23,7 +21,7 @@ static void TaskServoReader(void *pvParameters) {
 
     ServoControl::StoreCurrentServoPositions(currentPositions);
 
-    vTaskDelayUntil(&lastWakeTime, TASK_PERIOD);
+    vTaskDelayUntil(&lastWakeTime, READ_TASK.period);
   }
 }
 
@@ -31,9 +29,9 @@ void createTaskServoReader() {
     xTaskCreate(
         TaskServoReader,
         "Reader",
-        256,
+        READ_TASK.stackSize,
         NULL,
-        task_priority,
+        READ_TASK.priority,
         NULL
     );
   }

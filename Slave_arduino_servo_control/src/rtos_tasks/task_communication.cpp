@@ -1,15 +1,14 @@
 #include <Arduino_FreeRTOS.h>
 #include <queue.h>
 
-#include "shared/SharedServoState.h"
-#include "tasks/TaskCommunication.h"
+#include "rtos_tasks/task_communication.h"
+#include "config/task_config.h"
+#include "shared/shared_servo_state.h"
 #include "comms/UART_communication.h"
+
 #include "utils/Debug.h"
 
 constexpr bool LOCAL_DEBUG = true;
-
-constexpr UBaseType_t task_priority = 3;                // High priority
-constexpr TickType_t TASK_PERIOD = pdMS_TO_TICKS(400);  // Periodic polling interval
 
 constexpr uint16_t QUEUE_SIZE = 128;                    // Enough for several packets
 
@@ -33,7 +32,7 @@ static void TaskCommunication(void *pvParameters) {
 
         // receiveUARTData();
 
-        vTaskDelayUntil(&lastWakeTime, TASK_PERIOD);  // Keeps execution periodic
+        vTaskDelayUntil(&lastWakeTime, COMM_TASK.period);  // Keeps execution periodic
     }
 }
 
@@ -49,9 +48,9 @@ void createTaskCommunication() {
     xTaskCreate(
         TaskCommunication,
         "Communication",
-        256,
+        COMM_TASK.stackSize,
         NULL,
-        task_priority,    
+        COMM_TASK.priority,    
         NULL
     );
 }

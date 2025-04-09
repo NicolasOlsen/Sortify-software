@@ -1,17 +1,14 @@
 #include <Arduino_FreeRTOS.h>
 #include <DynamixelShield.h>
 
-#include "tasks/TaskServoSetter.h"
-#include "control/ServoControl.h"
-#include "shared/SharedServoState.h"
-#include "shared/System_status.h"
+#include "rtos_tasks/task_servo_setter.h"
+#include "config/task_config.h"
+#include "control/servo_control.h"
+#include "shared/shared_servo_state.h"
 
 #include "utils/Debug.h"
 
 constexpr bool LOCAL_DEBUG = true;
-
-constexpr UBaseType_t task_priority = 1;                // Medium priority
-constexpr TickType_t TASK_PERIOD = pdMS_TO_TICKS(1000); // Periodic polling interval
 
 static void TaskServoSetter(void *pvParameters) {
   TickType_t lastWakeTime = xTaskGetTickCount();
@@ -23,7 +20,7 @@ static void TaskServoSetter(void *pvParameters) {
 
     ServoControl::SetServosToPosition(goalPositions);
 
-    vTaskDelayUntil(&lastWakeTime, TASK_PERIOD);
+    vTaskDelayUntil(&lastWakeTime, SET_TASK.period);
   }
 }
 
@@ -31,9 +28,9 @@ void createTaskServoSetter() {
   xTaskCreate(
       TaskServoSetter,
       "Setter",
-      256,
+      SET_TASK.stackSize,
       NULL,
-      task_priority,   
+      SET_TASK.priority,   
       NULL
   );
 }

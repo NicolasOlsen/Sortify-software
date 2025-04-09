@@ -1,9 +1,8 @@
-#ifndef SHAREDSERVODATA_H
-#define SHAREDSERVODATA_H
+#ifndef SHARED_SERVO_DATA_H
+#define SHARED_SERVO_DATA_H
 
 #include <DynamixelShield.h>
-#include <Arduino_FreeRTOS.h>
-#include <semphr.h>
+#include <utils/scoped_lock.h>
 
 #include "utils/Debug.h"
 
@@ -99,7 +98,8 @@ T SharedServoData<T, size>::Get(uint8_t id, bool changeFlag) {
     int index = indexFromId(id);        // Get proper index, since ids is from 1
     if (index < 0) return data;
 
-    if (mutex && xSemaphoreTake(mutex, portMAX_DELAY)) {
+    ScopedLock lock(mutex);
+    if (lock.isLocked()) {
         data = arr_m[index];
 
         if (changeFlag) {           // Optional to change flag
@@ -107,7 +107,6 @@ T SharedServoData<T, size>::Get(uint8_t id, bool changeFlag) {
         }
 
         Debug::infoln(String(id) + " got data " + String(data));
-        xSemaphoreGive(mutex);
     }
 
     return data;
@@ -118,11 +117,11 @@ void SharedServoData<T, size>::Set(uint8_t id, T data, bool changeFlag) {
     int index = indexFromId(id);
     if (index < 0) return;
 
-    if (mutex && xSemaphoreTake(mutex, portMAX_DELAY)) {
+    ScopedLock lock(mutex);
+    if (lock.isLocked()) {
         arr_m[index] = data;
         flags_m[index] = true; // optional: mark it as updated
         Debug::infoln(String(id) + " set data " + String(data));
-        xSemaphoreGive(mutex);
     }
 }
 
@@ -139,11 +138,12 @@ bool SharedServoData<T, size>::GetFlag(uint8_t id) const{
     bool flag = false;
     if (index < 0) return flag;
 
-    if (mutex && xSemaphoreTake(mutex, portMAX_DELAY)) {
+    ScopedLock lock(mutex);
+    if (lock.isLocked()) {
         flag = flags_m[index];
         Debug::infoln(String(id) + " get flag " + String(flag));
-        xSemaphoreGive(mutex);
     }
+
     return flag;
 }
 
@@ -152,10 +152,10 @@ void SharedServoData<T, size>::SetFlag(uint8_t id, bool flag) {
     int index = indexFromId(id);
     if (index < 0) return;
 
-    if (mutex && xSemaphoreTake(mutex, portMAX_DELAY)) {
+    ScopedLock lock(mutex);
+    if (lock.isLocked()) {
         flags_m[index] = flag;
         Debug::infoln(String(id) + " set flag " + String(flag));
-        xSemaphoreGive(mutex);
     }
 }
 
