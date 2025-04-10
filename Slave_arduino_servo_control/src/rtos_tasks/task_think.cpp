@@ -44,7 +44,7 @@ void CheckAndChangeSystemState() {
 	{
 		DXLLibErrorCode_t error = servoErrors.Get(id);
 		if (error != DXL_LIB_OK) {
-			System_status::SetSystemState(StatusCode::FAULT);
+			System_status::systemState.Set(StatusCode::FAULT);
 			isError = true;
 		break;
 		}
@@ -56,6 +56,6 @@ void CheckAndChangeSystemState() {
 		}
 	}
 	else {
-		System_status::SetSystemState(StatusCode::IDLE);
+		System_status::systemState.Set(StatusCode::IDLE);
 	}
 }

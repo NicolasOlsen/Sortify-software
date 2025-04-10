@@ -25,6 +25,12 @@ namespace ServoControl {
      */
     bool PingServo(uint8_t id);
 
+    /**
+     * @brief Pings the servo and stores the error status in an shared error array.
+     * @return True if the all the pings was successful
+     */
+    bool PingServos();
+
     // === Inline Helper Functions ===
 
     inline float clamp(float value, float min, float max) {
@@ -65,6 +71,22 @@ namespace ServoControl {
 
         pwm.setPWM(0, 0, degreesToPwm(goalData.Get(id, true)));
         Debug::infoln("Analog servo " + String(id) + " successfully set", SERVO_CONTROL_DEBUG);
+    }
+
+    /**
+     * @brief Sets the smart servo velocity to the velocity stored in the goal data array. Clears the change flag.
+     * @param id ID of the servo to set
+     * @param goalData Shared data structure containing the goal velocity
+     */
+    template <uint8_t size>
+    void SetSmartServoVelocity(uint8_t id, SharedServoData<float, size>& goalData) {
+        if (!goalData.GetFlag(id)) return;
+
+        if (dxl.setGoalVelocity(id, goalData.Get(id, true), UNIT_DEGREE)) {
+            Debug::infoln("Servo " + String(id) + " successfully set", SERVO_CONTROL_DEBUG);
+        } else {
+            Debug::errorln("Servo " + String(id) + " failed to set", SERVO_CONTROL_DEBUG);
+        }
     }
 
     /**

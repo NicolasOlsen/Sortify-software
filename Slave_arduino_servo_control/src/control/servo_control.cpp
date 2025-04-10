@@ -11,13 +11,26 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 
 
 bool PingServo(uint8_t id) {
-    if (dxl.ping(id)) return true;
+    bool success = dxl.ping(id);
 
     DXLLibErrorCode_t lastError = dxl.getLastLibErrCode();
-    Debug::errorln(String(id) + " failed ping, error " + String(lastError));
+
+    if (!success) {
+        Debug::errorln(String(id) + " failed ping, error " + String(lastError));
+    }
 
     servoErrors.Set(id, lastError);
-    return false;
+    return success;
+}
+
+bool PingServos() {
+    bool success = true;
+    for (uint8_t id = 1; id <= SMART_SERVO_COUNT; id++) {
+        if (!PingServo(id)) {
+            success = false; 
+        }
+    }
+    return success;
 }
 
 } // namespace ServoControl

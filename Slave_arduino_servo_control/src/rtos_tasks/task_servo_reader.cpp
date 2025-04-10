@@ -3,6 +3,7 @@
 #include "rtos_tasks/task_servo_reader.h"
 #include "config/task_config.h"
 #include "shared/shared_servo_state.h"
+#include "shared/System_status.h"
 #include "control/servo_control.h"
 
 #include "utils/debug.h"
