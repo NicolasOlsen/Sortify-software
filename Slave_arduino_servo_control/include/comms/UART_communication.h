@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #include "Communication_code.h"
+#include "config/communication_config.h"
 
 /*
  * ========================================================
@@ -78,6 +79,13 @@
  * - This structure ensures **efficient and reliable UART communication** between the SBC and the Arduino controlling the robotic arm.
  */
 
+ struct UARTPacket {
+    uint8_t data[UART_BUFFER_SIZE];
+    uint8_t length;
+ };
+
+ extern QueueHandle_t uartPacketQueue;
+
 
 // =====================
 // Function Declarations
@@ -108,21 +116,6 @@ void processReceivedPacket(const uint8_t* packet, uint8_t length);
  * @param payloadLength Number of bytes in the payload.
  */
 void sendPacket(Com_code::MainCommand, const uint8_t* payload, uint8_t payloadLength);
-
-/**
- * @brief Sends the current system status
- */
-void sendRespondStatus();
-
-/**
- * @brief Sends the current servo positions in one package (Excluding the gripper)
- */
-void sendServoPositions();
-
-/**
- * @brief Sends the latest recorded system or servo error
- */
-void sendRespondErrorReport();
 
 /**
  * @brief Sends notice of communication error and type, so recieving device can try again

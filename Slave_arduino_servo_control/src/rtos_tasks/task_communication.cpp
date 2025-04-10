@@ -10,27 +10,25 @@
 
 constexpr bool LOCAL_DEBUG = true;
 
-constexpr uint16_t QUEUE_SIZE = 128;                    // Enough for several packets
-
-QueueHandle_t serial1Queue;  // Global queue handle
+QueueHandle_t uartPacketQueue;  // Global queue handle
 
 // Communication Task
 static void TaskCommunication(void *pvParameters) {
     TickType_t lastWakeTime = xTaskGetTickCount();
+
+    UARTPacket packet;
 
     Debug::infoln("[T_Comm] started", LOCAL_DEBUG);
 
     for (;;) {
         Debug::infoln("[T_Comm]");
 
-        for (uint8_t id = 1; id <= 5; id++) {      
-            goalPositions.Set(id, 180.0f);
-        }
-        for (uint8_t id = 1; id <= 4; id++) {      
-            currentPositions.Get(id);
-        }
+        receiveUARTData();
 
-        // receiveUARTData();
+        // Check if any complete packets have been received
+        while (xQueueReceive(uartPacketQueue, &packet, 0) == pdTRUE) {
+            processReceivedPacket(packet.data, packet.length);
+        }
 
         vTaskDelayUntil(&lastWakeTime, COMM_TASK.period);  // Keeps execution periodic
     }
@@ -39,8 +37,8 @@ static void TaskCommunication(void *pvParameters) {
 
 // Initialization function to create task and queue
 void createTaskCommunication() {
-    serial1Queue = xQueueCreate(QUEUE_SIZE, sizeof(uint8_t));
-    if (serial1Queue == NULL) {
+    uartPacketQueue = xQueueCreate(QUEUE_SIZE, sizeof(UARTPacket));
+    if (uartPacketQueue == NULL) {
         Debug::errorln("[Comm] Failed to create serial queue");
         while (true);  // Halt system
     }

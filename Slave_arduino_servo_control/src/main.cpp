@@ -16,8 +16,8 @@ void setup() {
 
     // Start all tasks
     createTaskCommunication();
-    createTaskServoReader();
-    createTaskServoSetter();
+    // createTaskServoReader();
+    // createTaskServoSetter();
     // createTaskThink();
 
     vTaskStartScheduler();
