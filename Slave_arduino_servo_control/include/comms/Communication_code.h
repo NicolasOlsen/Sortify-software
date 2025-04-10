@@ -4,78 +4,58 @@
 #include <stdint.h>
 
 namespace Com_code {
-    // =====================
     // Main Command List
-    // =====================
     // These commands are used for communication between the SBC (such as a Raspberry Pi) and the Arduino.
     // The SBC sends these commands to request information or control the servos.
     enum class MainCommand : uint8_t {
         // Status and Health
-        REQUEST_STATUS              = 0x01,  // Master requests the system's current status (Arduino responds with RESPOND_STATUS)
-        RESPOND_STATUS              = 0x02,  // Arduino responds with the system's current state
-        ACKNOWLEDGE                 = 0x03,  // Generic ACK when no specific data is returned
-        HEARTBEAT                   = 0x04,  // Master checks if Arduino is alive (Arduino responds with ACKNOWLEDGE)
+        HEARTBEAT       = 0x01,     // Master checks if Arduino is alive (Arduino responds with ACKNOWLEDGE)
+        ACKNOWLEDGE,                // Generic ACK when no specific data is returned
     
         // Servo Information
-        REQUEST_SERVO_POSITIONS     = 0x05,  // Master requests positions of all servos (excluding gripper)
-        RESPOND_SERVO_POSITIONS     = 0x06,  // Arduino responds with [Base, Shoulder, Elbow, Wrist]
-    
-        REQUEST_CURRENT_SPEED       = 0x07,  // Master requests current speed of a servo (0x00 for slowest)
-        RESPOND_CURRENT_SPEED       = 0x08,  // Arduino responds with current speed of requested servo
+        REQUEST_SERVO_POSITIONS,    // Master requests positions of all servos (excluding gripper)
+        RESPOND_SERVO_POSITIONS,    // Arduino responds with [Base, Shoulder, Elbow, Wrist]
     
         // Motion Control
-        SET_SERVO_POSITION          = 0x09,  // Master sets a single servo position
-        SET_ALL_POSITIONS           = 0x0A,  // Master sets all positions (excluding gripper)
-        SET_MAX_SPEED               = 0x0B,  // Master sets global max speed
-        SYSTEM_CONTROL              = 0x0C,  // STOP, RESUME, RESTART (requires subcommand)
+        SET_SERVO_POSITION,         // Master sets a single servo position
+        SET_ALL_POSITIONS,          // Master sets all positions (excluding gripper)
+        SET_SERVO_GOAL_VELOCITY,    // Master sets a single servo goal velocity
+        SET_ALL_GOAL_VELOCITY,      // Master sets all servos max velocity
+        STOP_MOVEMENT,              // Master sets all positions to the current position
     
         // Fault/Error Reporting
-        REQUEST_ERROR_STATUS        = 0x0D,  // Master requests current error statuses
-        RESPOND_ERROR_STATUS        = 0x0E,  // Arduino responds with the current error codes
+        REQUEST_ERROR_STATUS,   // Master requests current error statuses
+        RESPOND_ERROR_STATUS,   // Arduino responds with the current error codes
     
-        COMMUNICATION_ERROR         = 0x0F   // Indicates a communication issue was detected
-    };
-    
-    
-    
-    // =====================
-    // Control Subcommands
-    // =====================
-    // These subcommands define actions that modify the system's operation.
-    // Used with the SYSTEM_CONTROL command.
-    enum class ControlSubCommand : uint8_t {
-        STOP      = 0x01,  // Stop a specific servo (Requires ServoId). Servo ID 0x00 = all servos.
-        RESUME    = 0x02,  // Resume operation after a stop (Requires ServoId). Servo ID 0x00 = all servos.
-        RESTART   = 0x03   // Restart the system
-    };
-    
-    // =====================
-    // System Status Codes
-    // =====================
-    // Arduino sends one of these status codes in response to REQUEST_STATUS.
-    enum class StatusCode : uint8_t {
-        INITIALIZING        = 0x01,  // System is booting up, not ready yet
-        IDLE                = 0x02,  // Servos are idle
-        MOVING              = 0x03,  // Servos are moving
-        WAITING             = 0x04,  // System is waiting to resume
-        FAULT               = 0x05   // System is in an error state and cannot recover (sends the number of errors)
-    };
-    
-    // =====================
-    // Error Codes
-    // =====================
-    // These errors are reported with ERROR_REPORT.
-    enum class ComErrorCode : uint8_t {    
-        // SBC ↔ Arduino Communication Errors
-        COMM_TIMEOUT        = 0x01,  // Timeout waiting for full command
-        CHECKSUM_ERROR      = 0x02,  // Invalid checksum received
-        UNKNOWN_COMMAND     = 0x03,  // Sent an unrecognized command
-        BUFFER_OVERFLOW     = 0x04   // UART buffer overflow detected
+        COMMUNICATION_ERROR     // Indicates a communication issue was detected
     };
 
-    // =====================
+    
+
+    // System Status Codes
+    // Arduino sends one of these status codes in response to REQUEST_STATUS.
+    enum class StatusCode : uint8_t {
+        INITIALIZING = 0x01,    // System is booting up, not ready yet
+        IDLE,                   // Servos are idle
+        MOVING,                 // Servos are moving
+        FAULT,                  // System is in an error state and cannot recover (sends the number of errors)
+    };
+
+    
+    // Error Codes
+    // These errors are reported with ERROR_REPORT.
+    enum class ComErrorCode : uint8_t {    
+        COMM_TIMEOUT = 0x01,        // Timeout waiting for full packet
+        CHECKSUM_ERROR,             // CRC16 mismatch
+        UNKNOWN_COMMAND,            // Unrecognized command byte
+        BUFFER_OVERFLOW,            // Packet too large for buffer
+        QUEUE_FULL,                 // FreeRTOS queue full
+        INVALID_PAYLOAD_SIZE        // Payload size does not match expected for given command
+    };
+    
+    
+    
     // Servo Identifiers
-    // =====================
     // Used to reference a specific servo motor when setting positions or stopping individual servos.
     enum class ServoId : uint8_t {
         BASE     = 0x01,  // Base rotation servo
