@@ -16,8 +16,7 @@ using namespace ServoControl;
 constexpr bool LOCAL_DEBUG = true;
 
 void InitSystem() {
-    System_status::InitSystemStatusMutex();
-    System_status::SetSystemState(StatusCode::INITIALIZING);
+    System_status::systemState.Set(StatusCode::INITIALIZING);
     Debug::init(BAUDRATE_COMM);
     Debug::infoln("Initializing", LOCAL_DEBUG);
 
@@ -37,7 +36,7 @@ void InitSystem() {
     for (uint8_t id = 1; id <= SMART_SERVO_COUNT; id++) {
         // Get DYNAMIXEL information
         if(ServoControl::PingServo(id) == false) {
-            System_status::SetSystemState(StatusCode::FAULT);   // Turn the system to fault mode, but will still ping to update the other servo statuses
+            System_status::systemState.Set(StatusCode::FAULT);   // Turn the system to fault mode, but will still ping to update the other servo statuses
             Debug::errorln("System initiated in fault mode");
             continue;
         }
@@ -50,9 +49,9 @@ void InitSystem() {
 
     goalPositions.Set(DEFAULT_SERVO_POSITIONS);
 
-    if (System_status::GetSystemState() == StatusCode::FAULT) return;  // Return and the system is in fault mode
+    if (System_status::systemState.Get() == StatusCode::FAULT) return;  // Return and the system is in fault mode
 
     ServoControl::SetServosToPosition(goalPositions);
 
-    System_status::SetSystemState(StatusCode::IDLE);    // System is initialized and idle
+    System_status::systemState.Set(StatusCode::IDLE);    // System is initialized and idle
 }

@@ -2,25 +2,13 @@
 #define SYSTEM_STATUS_H
 
 #include "comms/communication_code.h"
+#include "shared_variable.h"
 
 using namespace Com_code;
 
 namespace System_status
 {
-    /**
-     * @brief Initiates the systemstatus mutex
-     */
-    void InitSystemStatusMutex();
-    
-    /**
-     * @brief Safely gets the system state
-     */
-    StatusCode GetSystemState();
-
-    /**
-     * @brief Safely sets the system state
-     */
-    void SetSystemState(StatusCode state);
+    extern SharedVariable<StatusCode> systemState;
 }
 
 
