@@ -1,7 +1,7 @@
 #ifndef TASK_CONFIG_H
 #define TASK_CONFIG_H
 
-#include <Arduino.h>
+#include <stdint.h>
 #include <Arduino_FreeRTOS.h>
 
 /**

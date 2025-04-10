@@ -1,4 +1,6 @@
 // Included files
+#include <Arduino.h>
+
 #include "utils/debug.h"
 #include "config/project_config.h"
 

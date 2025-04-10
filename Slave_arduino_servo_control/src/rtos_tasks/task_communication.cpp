@@ -21,7 +21,7 @@ static void TaskCommunication(void *pvParameters) {
     Debug::infoln("[T_Comm] started", LOCAL_DEBUG);
 
     for (;;) {
-        Debug::infoln("[T_Comm]");
+        // Debug::infoln("[T_Comm]");
 
         receiveUARTData();
 

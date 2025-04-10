@@ -1,6 +1,7 @@
 #ifndef SHARED_SERVO_DATA_H
 #define SHARED_SERVO_DATA_H
 
+#include <stdint.h>
 #include <DynamixelShield.h>
 #include <utils/scoped_lock.h>
 

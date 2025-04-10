@@ -1,6 +1,7 @@
 #ifndef SERVO_CONTROL_H
 #define SERVO_CONTROL_H
 
+#include <stdint.h>
 #include <DynamixelShield.h>
 #include <Adafruit_PWMServoDriver.h>
 

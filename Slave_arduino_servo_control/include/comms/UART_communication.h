@@ -26,7 +26,7 @@
  * | 2       | Packet Length  | 1            | Total length of the packet **including this byte** but excluding the start bytes |
  * | 3       | Command ID     | 1            | Identifies the command type (see `MainCommand` enum in communication_code.h) |
  * | 4 - N   | Payload        | Variable     | Command-specific data (if applicable) |
- * | Last-3  | Last Error Code| 1            | Latest error code from Arduino (0x00 = no error) |
+ * | Last-3  | System state   | 1            | The system state of the Arduino (0x00 = no error) |
  * | Last-2  | CRC-16 (Low)   | 1            | Lower byte of CRC-16 checksum (error detection) |
  * | Last-1  | CRC-16 (High)  | 1            | Upper byte of CRC-16 checksum |
  * 
@@ -154,6 +154,26 @@ bool validatePacketCRC(const uint8_t* packet, uint8_t packetSize);
  * @param size The size of the packet
  */
 uint16_t calculateCRC16(const uint8_t* packet, uint8_t packetSize);
+
+/**
+ * @brief Sends a communication error
+ * 
+ * @param error The error code to send
+ */
+void sendCommunicationError(Com_code::ComErrorCode error);
+
+/**
+ * @brief Checks if the packet size is within the bound, if not sends a communication error
+ * 
+ * @param packetSize The size of the recieving packet
+ * @param expectedSize The size of the expected packet size
+ */
+bool packetExpectedSize(uint8_t packetSize, uint8_t expectedSize);
+
+/**
+ * @brief Sends a simple acknowledgement packet
+ */
+void sendAcknowledgement();
 
 
 #endif // UART_COMMUNICATION_H

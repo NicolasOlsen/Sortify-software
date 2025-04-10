@@ -1,8 +1,6 @@
 #ifndef SHARED_SERVO_STATE_H
 #define SHARED_SERVO_STATE_H
 
-#include <DynamixelShield.h>
-
 #include "shared/shared_servo_data.h"
 #include "config/servo_config.h"
 

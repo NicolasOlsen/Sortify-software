@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <DynamixelShield.h>
 
 #include "control/system_init.h"

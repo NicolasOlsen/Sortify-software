@@ -1,3 +1,5 @@
+#include <stdint.h>
+
 #include "control/servo_control.h"
 #include "shared/shared_servo_state.h"
 

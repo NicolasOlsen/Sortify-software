@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <Arduino_FreeRTOS.h>
 
 #include "rtos_tasks/task_think.h"

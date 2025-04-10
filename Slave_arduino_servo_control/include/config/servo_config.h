@@ -1,7 +1,7 @@
 #ifndef SERVO_CONFIG_H
 #define SERVO_CONFIG_H
 
-#include <Arduino.h>
+#include <stdint.h>
 
 // === Servo Configuration ===
 // Combined default positions for all servos (smart + analog)
