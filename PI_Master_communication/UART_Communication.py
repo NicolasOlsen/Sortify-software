@@ -1,6 +1,7 @@
 import serial
 import struct
 import time
+from enum import Enum
 from crc16 import CRC16
 
 
@@ -8,17 +9,26 @@ from crc16 import CRC16
 SERIAL_PORT = "COM3"  # Adjust this to your port
 BAUD_RATE = 1000000
 TIMEOUT = 0.01
-START_BYTES = b'\xAA\x55'
+START_BYTES = b'\xAA\x55\x00'
+
+class PacketState(Enum):
+	WAIT_FOR_START = 0
+	WAIT_FOR_LENGTH = 1
+	READ_REMAINING = 2
 
 
 # ========== UART HANDLER ==========
 class MasterUART:
-	def __init__(self, port, baudrate):
-		self.ser = serial.Serial(port, baudrate=baudrate, timeout=TIMEOUT)
+	def __init__(self, port, baudrate=1000000, timeout=0.1, start_bytes=b'\xAA\x55'):
+		self.ser = serial.Serial(port, baudrate=baudrate, timeout=timeout)
 		self.ser.setDTR(False)  # Prevent Arduino reset
 		time.sleep(2)  # Let Arduino boot
 		self.ser.reset_input_buffer()
 		self.crc16 = CRC16()
+		self.START_BYTES = start_bytes
+		self.last_packet = None
+		self.MAX_RETRIES = 3
+
 
 	def build_packet(self, command, payload=b''):
 		body = bytearray()
@@ -30,7 +40,7 @@ class MasterUART:
 		body.append(crc & 0xFF)
 		body.append((crc >> 8) & 0xFF)
 
-		return START_BYTES + body
+		return self.START_BYTES + body
 
 	def send_command(self, command, payload=b''):
 		packet = self.build_packet(command, payload)
@@ -40,21 +50,20 @@ class MasterUART:
 		time.sleep(0.5)
 		response = self.read_aligned_packet()
 		if response:
-			self.parse_packet(response)
+			self._parse_packet(response)
 		else:
 			print("[WARN] No valid response")
 
-	def read_aligned_packet(self):
-		WAIT_FOR_START = 0
-		WAIT_FOR_SECOND_START = 1
-		WAIT_FOR_LENGTH = 2
-		READ_REMAINING = 3
 
-		state = WAIT_FOR_START
+	def read_aligned_packet(self):
 		packet = bytearray()
 		length = 0
 		timeout_total = 2.0
 		start_time = time.time()
+		start_len = len(self.START_BYTES)
+		match_idx = 0
+
+		state = PacketState.WAIT_FOR_START
 
 		while time.time() - start_time < timeout_total:
 			byte = self.ser.read(1)
@@ -63,48 +72,50 @@ class MasterUART:
 
 			b = byte[0]
 
-			if state == WAIT_FOR_START:
-				if b == 0xAA:
-					packet = bytearray([b])
-					state = WAIT_FOR_SECOND_START
-				continue
-
-			elif state == WAIT_FOR_SECOND_START:
-				if b == 0x55:
+			if state == PacketState.WAIT_FOR_START:
+				if b == self.START_BYTES[match_idx]:
 					packet.append(b)
-					state = WAIT_FOR_LENGTH
+					match_idx += 1
+					if match_idx == start_len:
+						state = PacketState.WAIT_FOR_LENGTH
 				else:
-					state = WAIT_FOR_START
-				continue
+					packet.clear()
+					match_idx = 0
 
-			elif state == WAIT_FOR_LENGTH:
+			elif state == PacketState.WAIT_FOR_LENGTH:
 				length = b
 				packet.append(b)
-				state = READ_REMAINING
-				continue
+				state = PacketState.READ_REMAINING
 
-			elif state == READ_REMAINING:
+			elif state == PacketState.READ_REMAINING:
 				packet.append(b)
-				if len(packet) == 2 + length:
+				if len(packet) == start_len + length:
 					return bytes(packet)
 
 		return None
 
-	def parse_packet(self, packet: bytes):
-		if not packet.startswith(START_BYTES):
-			return
 
-		length = packet[2]
-		command = packet[3]
-		payload = packet[4:-2]
+	def _parse_packet(self, packet: bytes):
+		start_len = len(self.START_BYTES)
+
+		if not packet.startswith(self.START_BYTES):
+			return False
+
+		length = packet[start_len]
+		command = packet[start_len + 1]
+		payload = packet[start_len + 2:-2]
 		received_crc = struct.unpack('<H', packet[-2:])[0]
-		computed_crc = self.crc16.compute(packet[2:-2])
+		computed_crc = self.crc16.compute(packet[start_len:-2])
 
 		if received_crc != computed_crc:
 			print("[CRC ERROR] CRC mismatch")
-			return
+			if self.debug:
+				print(f"  Received CRC: {received_crc:04X}, Expected: {computed_crc:04X}")
+			return False
 
 		self.parse_payload(command, payload)
+		return True
+
 
 	def parse_payload(self, command, payload: bytes):
 		if not payload:
@@ -124,6 +135,7 @@ class MasterUART:
 
 		else:
 			print(f"[RECV RAW] cmd=0x{command:02X} payload={payload.hex(' ')}")
+
 
 	def close(self):
 		self.ser.close()
@@ -153,7 +165,7 @@ def test_all_commands(uart: MasterUART):
 
 # ========== MAIN ==========
 if __name__ == "__main__":
-	uart = MasterUART(SERIAL_PORT, BAUD_RATE)
+	uart = MasterUART(SERIAL_PORT, BAUD_RATE, start_bytes=START_BYTES)
 
 	try:
 		test_all_commands(uart)
