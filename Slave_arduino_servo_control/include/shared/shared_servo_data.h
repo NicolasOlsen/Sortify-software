@@ -36,6 +36,15 @@ public:
     T Get(uint8_t id, bool changeFlag = false);
 
     /**
+     * @brief Copies the current servo data into the provided array with mutex protection.
+     * 
+     * @param arr        The output array that will be filled with the current servo data.
+     * @param changeFlag If true, the updated flags will be cleared after reading.
+     */
+    void Get(T (&arr)[size], bool changeFlag = false);
+
+
+    /**
      * @brief Sets the data for a given servo with mutex protection.
      * 
      * @param id         The ID of the servo (1-based). If the ID is invalid (0 or out of range), the operation is ignored.
@@ -113,6 +122,22 @@ T SharedServoData<T, size>::Get(uint8_t id, bool changeFlag) {
 }
 
 template <typename T, uint8_t size>
+void SharedServoData<T, size>::Get(T (&arr)[size], bool changeFlag) {
+    ScopedLock lock(mutex);
+    if (lock.isLocked()) {
+        for (uint8_t i = 0; i < size; i++) {
+            arr[i] = arr_m[i];
+
+            Debug::infoln(String(i + 1) + " got data " + String(arr[i]));
+
+            if (changeFlag) {           // Optional to change flag
+                flags_m[i] = false;
+            }
+        }
+    }
+}
+
+template <typename T, uint8_t size>
 void SharedServoData<T, size>::Set(uint8_t id, T data, bool changeFlag) {
     int index = indexFromId(id);
     if (index < 0) return;
@@ -127,8 +152,15 @@ void SharedServoData<T, size>::Set(uint8_t id, T data, bool changeFlag) {
 
 template <typename T, uint8_t size>
 void SharedServoData<T, size>::Set(const T (&arr)[size], bool changeFlag) {
-    for (uint8_t id = 1; id <= size; ++id) {
-        Set(id, arr[id-1], changeFlag);
+    ScopedLock lock(mutex);
+    if (lock.isLocked()) {
+        for (uint8_t i = 0; i < size; ++i) {
+            arr_m[i] = arr[i];
+            if (changeFlag) {
+                flags_m[i] = true;
+            }
+            Debug::infoln(String(i + 1) + " set data " + String(arr[i]));
+        }
     }
 }
 
