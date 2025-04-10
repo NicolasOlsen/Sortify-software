@@ -23,7 +23,6 @@ static uint8_t prevPacketSize = 0;
 // Debug flag for local debugging
 constexpr bool LOCAL_DEBUG = true;
 
-constexpr uint8_t SYSTEM_STATE_SIZE = sizeof(uint8_t);
 constexpr uint8_t ID_SIZE = sizeof(uint8_t);
 constexpr uint8_t SERVO_POSITION_SIZE = sizeof(float);
 constexpr uint8_t SERVO_VELOCITY_SIZE = sizeof(float);
@@ -31,16 +30,16 @@ constexpr uint8_t ALL_POSITION_PAYLOAD_SIZE = SMART_SERVO_COUNT * SERVO_POSITION
 constexpr uint8_t ALL_VELOCITY_PAYLOAD_SIZE = SMART_SERVO_COUNT * SERVO_VELOCITY_SIZE;
 
 // Final expected size for SET_SERVO_POSITION
-constexpr uint8_t SSP_TOTAL_SIZE = MIN_PACKET_SIZE + ID_SIZE + SERVO_POSITION_SIZE + SYSTEM_STATE_SIZE;
+constexpr uint8_t SSP_TOTAL_SIZE = MIN_PACKET_SIZE + ID_SIZE + SERVO_POSITION_SIZE;
 
 // Final expected size for SET_ALL_POSITIONS
-constexpr uint8_t SAP_TOTAL_SIZE = MIN_PACKET_SIZE + ALL_POSITION_PAYLOAD_SIZE + SYSTEM_STATE_SIZE;
+constexpr uint8_t SAP_TOTAL_SIZE = MIN_PACKET_SIZE + ALL_POSITION_PAYLOAD_SIZE;
 
 // Final expected size for SET_SERVO_GOAL_VELOCITY
-constexpr uint8_t SSGS_TOTAL_SIZE = MIN_PACKET_SIZE + ID_SIZE + SERVO_VELOCITY_SIZE + SYSTEM_STATE_SIZE;
+constexpr uint8_t SSGS_TOTAL_SIZE = MIN_PACKET_SIZE + ID_SIZE + SERVO_VELOCITY_SIZE;
 
 // Final expected size for SET_ALL_GOAL_VELOCITY
-constexpr uint8_t SAGV_TOTAL_SIZE = MIN_PACKET_SIZE + ALL_VELOCITY_PAYLOAD_SIZE + SYSTEM_STATE_SIZE;
+constexpr uint8_t SAGV_TOTAL_SIZE = MIN_PACKET_SIZE + ALL_VELOCITY_PAYLOAD_SIZE;
 
 void UART_init(uint32_t baudRate) {
     COMM_SERIAL.begin(baudRate);
@@ -212,11 +211,9 @@ void processReceivedPacket(const uint8_t* packet, uint8_t packetSize) {
 
         case MainCommand::SET_SERVO_POSITION: {
             Debug::infoln("SSP received");
-            if (Com_helper::CheckFault()) {
-                sendAcknowledgement();
-                return;
-            }
             if (!packetExpectedSize(packetSize, SSP_TOTAL_SIZE)) return;
+            if (checkIdOutOfRange(packet[ID_INDEX], TOTAL_SERVO_COUNT)) return;
+            if (checkFaultAndSendAck()) return;
             Com_helper::handleSetSingleValue(packet, goalPositions);
             sendAcknowledgement();
             break;
@@ -224,11 +221,8 @@ void processReceivedPacket(const uint8_t* packet, uint8_t packetSize) {
 
         case MainCommand::SET_ALL_POSITIONS: {
             Debug::infoln("SAP received");
-            if (Com_helper::CheckFault()) {
-                sendAcknowledgement();
-                return;
-            }
             if (!packetExpectedSize(packetSize, SAP_TOTAL_SIZE)) return;
+            if (checkFaultAndSendAck()) return;
             Com_helper::handleSetAllValues(packet, goalPositions);
             sendAcknowledgement();
             break;
@@ -236,11 +230,9 @@ void processReceivedPacket(const uint8_t* packet, uint8_t packetSize) {
 
         case MainCommand::SET_SERVO_GOAL_VELOCITY: {
             Debug::infoln("SSGS received");
-            if (Com_helper::CheckFault()) {
-                sendAcknowledgement();
-                return;
-            }
             if (!packetExpectedSize(packetSize, SSGS_TOTAL_SIZE)) return;
+            if (checkIdOutOfRange(packet[ID_INDEX], SMART_SERVO_COUNT)) return;
+            if (checkFaultAndSendAck()) return;
             Com_helper::handleSetSingleValue(packet, goalVelocities);
             sendAcknowledgement();
             break;
@@ -248,11 +240,8 @@ void processReceivedPacket(const uint8_t* packet, uint8_t packetSize) {
 
         case MainCommand::SET_ALL_GOAL_VELOCITY: {
             Debug::infoln("SAGS received");
-            if (Com_helper::CheckFault()) {
-                sendAcknowledgement();
-                return;
-            }
             if (!packetExpectedSize(packetSize, SAGV_TOTAL_SIZE)) return;
+            if (checkFaultAndSendAck()) return;
             Com_helper::handleSetAllValues(packet, goalVelocities);
             sendAcknowledgement();
             break;
@@ -260,10 +249,7 @@ void processReceivedPacket(const uint8_t* packet, uint8_t packetSize) {
 
         case MainCommand::STOP_MOVEMENT:
             Debug::infoln("SM received");
-            if (Com_helper::CheckFault()) {
-                sendAcknowledgement();
-                return;
-            }
+            if (checkFaultAndSendAck()) return;
             float current[SMART_SERVO_COUNT];
             currentPositions.Get(current);
 
@@ -358,8 +344,25 @@ void sendPacket(MainCommand command, const uint8_t* payload, uint8_t payloadLeng
 }
 
 void sendAcknowledgement() {
-    uint8_t statusCode = static_cast<uint8_t>(System_status::systemState.Get());
-    sendPacket(MainCommand::ACKNOWLEDGE, &statusCode, 1);
+    sendPacket(MainCommand::ACKNOWLEDGE, nullptr, 0);
+}
+
+bool checkFaultAndSendAck() {
+    if (Com_helper::CheckFault()) {
+        Debug::warnln("System is in fault mode", LOCAL_DEBUG);
+        sendAcknowledgement();
+        return true;
+    }
+    return false;
+}
+
+bool checkIdOutOfRange(uint8_t id, uint8_t rangeId) {
+    if (id > rangeId) {
+        Debug::warnln("Id out of range, max " + String(TOTAL_SERVO_COUNT), LOCAL_DEBUG);
+        sendCommunicationError(ComErrorCode::ID_OUT_OF_RANGE);
+        return true;
+    }
+    return false;
 }
 
 void sendCommunicationError(ComErrorCode error) {
@@ -390,8 +393,9 @@ void storePreviousPacket(const uint8_t packet[UART_BUFFER_SIZE], uint8_t size) {
 // Checks if the packetsize is smaller than the expceted packetsize
 bool packetExpectedSize(uint8_t packetSize, uint8_t expectedSize) {
     if (packetSize < expectedSize) {
+        Debug::errorln("Packet is less than expected size, expected " + 
+            String(expectedSize) + " got " + String(packetSize), LOCAL_DEBUG);
         sendCommunicationError(ComErrorCode::INVALID_PAYLOAD_SIZE);
-        Debug::errorln("Packet too small");
         return false;
     }
     return true;

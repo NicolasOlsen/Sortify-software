@@ -136,6 +136,7 @@ void storePreviousPacket(const uint8_t* packet, uint8_t size);
 
 /**
  * @brief Makes the CRC and adds it to the packet to be sent
+ * 
  * @param packet The packet to be send
  * @param size The size of the packet
  */
@@ -143,6 +144,7 @@ void makePacketCRC(uint8_t* packet, uint8_t packetSize);
 
 /**
  * @brief Validates the CRC in the recieved packet
+ * 
  * @param packet The packet to be validated
  * @param size The size of the packet
  */
@@ -150,8 +152,11 @@ bool validatePacketCRC(const uint8_t* packet, uint8_t packetSize);
 
 /**
  * @brief Helper function for other CRC functions, to keep consistent
+ * 
  * @param packet The packet to calculate CRC16
  * @param size The size of the packet
+ * 
+ * @return The CRC16 checksum
  */
 uint16_t calculateCRC16(const uint8_t* packet, uint8_t packetSize);
 
@@ -167,6 +172,8 @@ void sendCommunicationError(Com_code::ComErrorCode error);
  * 
  * @param packetSize The size of the recieving packet
  * @param expectedSize The size of the expected packet size
+ * 
+ * @return If the packet is the expected size
  */
 bool packetExpectedSize(uint8_t packetSize, uint8_t expectedSize);
 
@@ -174,6 +181,23 @@ bool packetExpectedSize(uint8_t packetSize, uint8_t expectedSize);
  * @brief Sends a simple acknowledgement packet
  */
 void sendAcknowledgement();
+
+/**
+ * @brief Checks for system fault and sends an acknowledgement if there is
+ * 
+ * @return If the system is in fault mode, true
+ */
+bool checkFaultAndSendAck();
+
+/**
+ * @brief Checks if the sent id is out of range and sends an id out of range if there it is
+ * 
+ * @param id the id to check
+ * @param rangeId the id range to check
+ * 
+ * @return If the id is out of range, true
+ */
+bool checkIdOutOfRange(uint8_t id, uint8_t rangeId);
 
 
 #endif // UART_COMMUNICATION_H

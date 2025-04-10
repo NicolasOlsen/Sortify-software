@@ -50,7 +50,8 @@ namespace Com_code {
         UNKNOWN_COMMAND,            // Unrecognized command byte
         BUFFER_OVERFLOW,            // Packet too large for buffer
         QUEUE_FULL,                 // FreeRTOS queue full
-        INVALID_PAYLOAD_SIZE        // Payload size does not match expected for given command
+        INVALID_PAYLOAD_SIZE,       // Payload size does not match expected for given command
+        ID_OUT_OF_RANGE             // The requested id is out of range
     };
     
     
