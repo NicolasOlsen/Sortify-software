@@ -50,10 +50,12 @@ void handleSetSingleValue(const uint8_t* packet, SharedServoData<T, size>& dataS
  * @param dataStore The sharedServoData object to save to
  */
 template<typename T, uint8_t size>
-void handleSetAllValues(const uint8_t* packet, SharedServoData<T, size>& dataStore) {
+void handleSetAllValues(const uint8_t* packet, SharedServoData<T, size>& dataStore, uint8_t sizeCopy = size) {
     T values[size];     // creates a array that has enough for the size of the internal array of dataStore
-    convertBytesToTypedArray<T>(&packet[PAYLOAD_INDEX], size, values);  // Use the function to turn the bytes to the correct types
-    dataStore.Set(values);  // Copy the array to dataStore
+    convertBytesToTypedArray<T>(&packet[PAYLOAD_INDEX], sizeCopy, values);  // Use the function to turn the bytes to the correct types
+    for(uint8_t i = 0; i < sizeCopy; i++) {
+        dataStore.Set(i+1, values[i]);  // Copy to the dataStore
+    }
 }
 
 

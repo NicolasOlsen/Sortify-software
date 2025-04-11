@@ -61,6 +61,8 @@ void receiveUARTData() {
         Debug::print("\n", LOCAL_DEBUG);
         Debug::warnln("Packet Timeout - Resetting State Machine", LOCAL_DEBUG);
 
+        sendCommunicationError(ComErrorCode::COMM_TIMEOUT);
+
         state = ReceiveState::SYNC;
         localIndex = 0;
         expectedLength = 0;
@@ -223,7 +225,7 @@ void processReceivedPacket(const uint8_t* packet, uint8_t packetSize) {
             Debug::infoln("SAP received");
             if (!packetExpectedSize(packetSize, SAP_TOTAL_SIZE)) return;
             if (checkFaultAndSendAck()) return;
-            Com_helper::handleSetAllValues(packet, goalPositions);
+            Com_helper::handleSetAllValues(packet, goalPositions, SMART_SERVO_COUNT);
             sendAcknowledgement();
             break;
         }
@@ -242,7 +244,7 @@ void processReceivedPacket(const uint8_t* packet, uint8_t packetSize) {
             Debug::infoln("SAGS received");
             if (!packetExpectedSize(packetSize, SAGV_TOTAL_SIZE)) return;
             if (checkFaultAndSendAck()) return;
-            Com_helper::handleSetAllValues(packet, goalVelocities);
+            Com_helper::handleSetAllValues(packet, goalVelocities, SMART_SERVO_COUNT);
             sendAcknowledgement();
             break;
         }
