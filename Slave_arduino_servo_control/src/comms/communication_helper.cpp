@@ -4,7 +4,7 @@
 #include "comms/communication_helper.h"
 
 #include "config/communication_config.h"
-#include "shared/System_status.h"
+#include "shared/shared_objects.h"
 
 #include "utils/Debug.h"
 
@@ -15,7 +15,7 @@ constexpr bool LOCAL_DEBUG = true;
 CRC16 crc16;
 
 
-bool CheckFault() { return System_status::systemState.Get() == StatusCode::FAULT; }
+bool CheckFault() { return Shared::systemState.Get() == StatusCode::FAULT; }
 
 
 // Appends a CRC-16 checksum to the last two bytes of the packet

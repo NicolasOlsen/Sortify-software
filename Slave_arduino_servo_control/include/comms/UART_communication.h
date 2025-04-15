@@ -1,8 +1,9 @@
 #ifndef UART_COMMUNICATION_H
 #define UART_COMMUNICATION_H
 
-#include <Arduino.h>
 #include <stdint.h>
+#include <Arduino_FreeRTOS.h>
+#include <queue.h>
 
 #include "Communication_code.h"
 #include "config/communication_config.h"

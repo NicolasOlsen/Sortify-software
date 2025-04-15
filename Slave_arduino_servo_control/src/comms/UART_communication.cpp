@@ -9,8 +9,7 @@
 #include "comms/communication_helper.h"
 #include "comms/Communication_code.h"
 
-#include "shared/System_status.h"
-#include "shared/shared_servo_state.h"
+#include "shared/shared_objects.h"
 
 #include "utils/Debug.h"
 
@@ -26,8 +25,8 @@ constexpr bool LOCAL_DEBUG = true;
 constexpr uint8_t ID_SIZE = sizeof(uint8_t);
 constexpr uint8_t SERVO_POSITION_SIZE = sizeof(float);
 constexpr uint8_t SERVO_VELOCITY_SIZE = sizeof(float);
-constexpr uint8_t ALL_POSITION_PAYLOAD_SIZE = SMART_SERVO_COUNT * SERVO_POSITION_SIZE;
-constexpr uint8_t ALL_VELOCITY_PAYLOAD_SIZE = SMART_SERVO_COUNT * SERVO_VELOCITY_SIZE;
+constexpr uint8_t ALL_POSITION_PAYLOAD_SIZE = DXL_SERVO_COUNT * SERVO_POSITION_SIZE;
+constexpr uint8_t ALL_VELOCITY_PAYLOAD_SIZE = DXL_SERVO_COUNT * SERVO_VELOCITY_SIZE;
 
 // Final expected size for SET_SERVO_POSITION
 constexpr uint8_t SSP_TOTAL_SIZE = MIN_PACKET_SIZE + ID_SIZE + SERVO_POSITION_SIZE;
@@ -198,10 +197,10 @@ void processReceivedPacket(const uint8_t* packet, uint8_t packetSize) {
         case MainCommand::REQUEST_SERVO_POSITIONS: {
             Debug::infoln("RSP received");
         
-            float current[SMART_SERVO_COUNT];
-            currentPositions.Get(current);  // Thread-safe copy of floats
+            float current[DXL_SERVO_COUNT];
+            // Shared::currentPositions.Get(current);  // Thread-safe copy of floats
         
-            constexpr uint8_t payloadBytes = SMART_SERVO_COUNT * sizeof(float);
+            constexpr uint8_t payloadBytes = DXL_SERVO_COUNT * sizeof(float);
             uint8_t payload[payloadBytes];
         
             // Convert float array to byte buffer
@@ -216,7 +215,7 @@ void processReceivedPacket(const uint8_t* packet, uint8_t packetSize) {
             if (!packetExpectedSize(packetSize, SSP_TOTAL_SIZE)) return;
             if (checkIdOutOfRange(packet[ID_INDEX], TOTAL_SERVO_COUNT)) return;
             if (checkFaultAndSendAck()) return;
-            Com_helper::handleSetSingleValue(packet, goalPositions);
+            Com_helper::handleSetSingleValue(packet, Shared::goalPositions);
             sendAcknowledgement();
             break;
         }            
@@ -225,7 +224,7 @@ void processReceivedPacket(const uint8_t* packet, uint8_t packetSize) {
             Debug::infoln("SAP received");
             if (!packetExpectedSize(packetSize, SAP_TOTAL_SIZE)) return;
             if (checkFaultAndSendAck()) return;
-            Com_helper::handleSetAllValues(packet, goalPositions, SMART_SERVO_COUNT);
+            Com_helper::handleSetAllValues(packet, Shared::goalPositions, DXL_SERVO_COUNT);
             sendAcknowledgement();
             break;
         }
@@ -233,9 +232,9 @@ void processReceivedPacket(const uint8_t* packet, uint8_t packetSize) {
         case MainCommand::SET_SERVO_GOAL_VELOCITY: {
             Debug::infoln("SSGS received");
             if (!packetExpectedSize(packetSize, SSGS_TOTAL_SIZE)) return;
-            if (checkIdOutOfRange(packet[ID_INDEX], SMART_SERVO_COUNT)) return;
+            if (checkIdOutOfRange(packet[ID_INDEX], DXL_SERVO_COUNT)) return;
             if (checkFaultAndSendAck()) return;
-            Com_helper::handleSetSingleValue(packet, goalVelocities);
+            Com_helper::handleSetSingleValue(packet, Shared::goalVelocities);
             sendAcknowledgement();
             break;
         }
@@ -244,7 +243,7 @@ void processReceivedPacket(const uint8_t* packet, uint8_t packetSize) {
             Debug::infoln("SAGS received");
             if (!packetExpectedSize(packetSize, SAGV_TOTAL_SIZE)) return;
             if (checkFaultAndSendAck()) return;
-            Com_helper::handleSetAllValues(packet, goalVelocities, SMART_SERVO_COUNT);
+            Com_helper::handleSetAllValues(packet, Shared::goalVelocities, DXL_SERVO_COUNT);
             sendAcknowledgement();
             break;
         }
@@ -252,26 +251,26 @@ void processReceivedPacket(const uint8_t* packet, uint8_t packetSize) {
         case MainCommand::STOP_MOVEMENT:
             Debug::infoln("SM received");
             if (checkFaultAndSendAck()) return;
-            float current[SMART_SERVO_COUNT];
-            currentPositions.Get(current);
+            float current[DXL_SERVO_COUNT];
+            // Shared::currentPositions.Get(current);
 
-            float goal[TOTAL_SERVO_COUNT];
-            goalPositions.Get(goal);
-            for (uint8_t i = 0; i < SMART_SERVO_COUNT; ++i) {
-                goal[i] = current[i];
-            }
-            goalPositions.Set(goal);
-            System_status::systemState.Set(StatusCode::IDLE);
+            // float goal[TOTAL_SERVO_COUNT];
+            // Shared::goalPositions.Get(goal);
+            // for (uint8_t i = 0; i < DXL_SERVO_COUNT; ++i) {
+            //     goal[i] = current[i];
+            // }
+            // Shared::goalPositions.Set(goal);
+            Shared::systemState.Set(StatusCode::IDLE);
             sendAcknowledgement();
             break;
 
         case MainCommand::REQUEST_ERROR_STATUS: {
             Debug::infoln("RES received");
         
-            DXLLibErrorCode_t flags[SMART_SERVO_COUNT];
-            servoErrors.Get(flags);  // Get actual 32-bit error codes
+            DXLLibErrorCode_t flags[DXL_SERVO_COUNT];
+            // Shared::servoErrors.Get(flags);  // Get actual 32-bit error codes
         
-            constexpr size_t payloadSize = SMART_SERVO_COUNT * sizeof(DXLLibErrorCode_t);
+            constexpr size_t payloadSize = DXL_SERVO_COUNT * sizeof(DXLLibErrorCode_t);
             uint8_t payload[payloadSize];
         
             memcpy(payload, flags, payloadSize);
@@ -326,7 +325,7 @@ void sendPacket(MainCommand command, const uint8_t* payload, uint8_t payloadLeng
     }
 
     // Append system state just before CRC
-    uint8_t systemState = static_cast<uint8_t>(System_status::systemState.Get());
+    uint8_t systemState = static_cast<uint8_t>(Shared::systemState.Get());
     packet[PAYLOAD_INDEX + payloadLength] = systemState;
 
     // Append CRC

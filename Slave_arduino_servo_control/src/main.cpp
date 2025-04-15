@@ -1,5 +1,3 @@
-#define __INCLUDE_TEMPLATES__
-
 #include <Arduino.h>
 #include <Arduino_FreeRTOS.h>
 
@@ -10,15 +8,14 @@
 #include "rtos_tasks/task_servo_setter.h"
 #include "rtos_tasks/task_think.h"
 
-
 void setup() {
     InitSystem();
 
     // Start all tasks
-    createTaskCommunication();
-    // createTaskServoReader();
-    // createTaskServoSetter();
-    // createTaskThink();
+    // createTaskCommunication();
+    createTaskServoReader();
+    createTaskServoSetter();
+    createTaskThink();
 
     vTaskStartScheduler();
 }

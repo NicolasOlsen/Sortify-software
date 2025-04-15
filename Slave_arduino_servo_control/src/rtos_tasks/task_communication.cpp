@@ -3,7 +3,7 @@
 
 #include "rtos_tasks/task_communication.h"
 #include "config/task_config.h"
-#include "shared/shared_servo_state.h"
+#include "shared/shared_objects.h"
 #include "comms/UART_communication.h"
 
 #include "utils/Debug.h"

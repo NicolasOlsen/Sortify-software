@@ -40,5 +40,6 @@ constexpr TaskConfig SET_TASK = { pdMS_TO_TICKS(1000), 1, 256 };
  * Low priority, background decision-making.
  */
 constexpr TaskConfig THINK_TASK = { pdMS_TO_TICKS(1200), 0, 256 };
+constexpr uint8_t MAX_ERRORS = 3;
 
 #endif // TASK_CONFIG_H
