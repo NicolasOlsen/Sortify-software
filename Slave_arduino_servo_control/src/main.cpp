@@ -9,17 +9,17 @@
 #include "rtos_tasks/task_think.h"
 
 void setup() {
-    InitSystem();
+		InitSystem();
 
-    // Start all tasks
-    // createTaskCommunication();
-    createTaskServoReader();
-    createTaskServoSetter();
-    createTaskThink();
+		// Start all tasks
+		createTaskCommunication();
+		// createTaskServoReader();
+		// createTaskServoSetter();
+		// createTaskThink();
 
-    vTaskStartScheduler();
+		vTaskStartScheduler();
 }
 
 void loop() {
-  // Not used with FreeRTOS
+	// Not used with FreeRTOS
 }

@@ -37,13 +37,14 @@ public:
     T Get(uint8_t id, bool changeFlag = false);
 
     /**
-     * @brief Copies the current servo data into the provided array with mutex protection.
+     * @brief Copies a segment of the stored servo data into the provided array with mutex protection.
      * 
-     * @param arr        The output array that will be filled with the current servo data.
-     * @param changeFlag If true, the updated flags will be cleared after reading.
+     * @param arr         Pointer to the output array that will be filled with servo data.
+     * @param size_       Number of elements to copy.
+     * @param start_index Starting index in the internal data array (default: 0).
+     * @param changeFlag  If true, the update flags for the copied elements will be cleared.
      */
     void Get(T* arr, uint8_t size_, uint8_t start_index = 0, bool changeFlag = false);
-
 
     /**
      * @brief Sets the data for a given servo with mutex protection.
@@ -55,10 +56,12 @@ public:
     void Set(uint8_t id, T data, bool changeFlag = true);
 
     /**
-     * @brief Sets the data for all the servos with mutex protection.
+     * @brief Sets a segment of the servo data array with mutex protection.
      * 
-     * @param arr        The array off the servo data to set, in order
-     * @param changeFlag If true, the updated flag will be marked as true after setting.
+     * @param arr         Pointer to the input array containing the data to set.
+     * @param size_       Number of elements to write.
+     * @param start_index Starting index in the internal array to begin writing (default: 0).
+     * @param changeFlag  If true, the updated flags for the affected entries will be set.
      */
     void Set(const T* arr, uint8_t size_, uint8_t start_index = 0, bool changeFlag = true);
 
@@ -71,12 +74,31 @@ public:
     bool GetFlag(uint8_t id) const;
 
     /**
+     * @brief Gets a range of update flags with mutex protection.
+     * 
+     * @param out         The output array to fill with flags.
+     * @param size_       Number of flags to retrieve.
+     * @param start_index Index to start reading from.
+     */
+    void GetFlags(bool* out, uint8_t size_, uint8_t start_index = 0) const;
+
+
+    /**
      * @brief Sets the updated flag for a given servo with mutex protection.
      * 
      * @param id   The ID of the servo. If the ID is invalid (out of range), the operation is ignored.
      * @param flag The flag value to set.
      */
     void SetFlag(uint8_t id, bool flag);
+
+    /**
+     * @brief Sets a range of update flags for the servo data with mutex protection.
+     * 
+     * @param flags        Pointer to an array of boolean flag values to apply.
+     * @param size_        Number of flag entries to write.
+     * @param start_index  Starting index in the internal flag array (default: 0).
+     */
+    void SetFlags(const bool* flags, uint8_t size_, uint8_t start_index = 0);
 
     /**
      * @brief Sets the all the flags the servos, with mutex protection.
@@ -181,6 +203,21 @@ bool SharedServoData<T, size>::GetFlag(uint8_t id) const{
 }
 
 template <typename T, uint8_t size>
+void SharedServoData<T, size>::GetFlags(bool* out, uint8_t size_, uint8_t start_index) const {
+    if (start_index + size_ > size) {
+        Debug::errorln("Tried to go out of range in GetFlags");
+        return;
+    }
+
+    ScopedLock lock(mutex);
+    if (lock.isLocked()) {
+        for (uint8_t i = 0; i < size_; ++i) {
+            out[i] = flags_m[start_index + i];
+        }
+    }
+}
+
+template <typename T, uint8_t size>
 void SharedServoData<T, size>::SetFlag(uint8_t id, bool flag) {
     if (id >= size) return;
 
@@ -188,6 +225,22 @@ void SharedServoData<T, size>::SetFlag(uint8_t id, bool flag) {
     if (lock.isLocked()) {
         flags_m[id] = flag;
         Debug::infoln(String(id) + " set flag " + String(flag));
+    }
+}
+
+template <typename T, uint8_t size>
+void SharedServoData<T, size>::SetFlags(const bool* flags, uint8_t size_, uint8_t start_index) {
+    if (start_index + size_ > size) {
+        Debug::errorln("Tried to go out of range in setFlags sharedData");
+        return;
+    }
+
+    ScopedLock lock(mutex);
+    if (lock.isLocked()) {
+        for (uint8_t i = 0; i < size_; ++i) {
+            flags_m[start_index + i] = flags[i];
+            Debug::infoln("Set flag at index " + String(start_index + i) + " to " + String(flags[i]));
+        }
     }
 }
 

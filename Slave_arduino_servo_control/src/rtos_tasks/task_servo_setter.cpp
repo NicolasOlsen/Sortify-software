@@ -10,40 +10,46 @@
 constexpr bool LOCAL_DEBUG = true;
 
 static void TaskServoSetter(void *pvParameters) {
-  TickType_t lastWakeTime = xTaskGetTickCount();
+	TickType_t lastWakeTime = xTaskGetTickCount();
 
-  auto& manager = Shared::servoManager;
+	auto& manager = Shared::servoManager;
 
-  float tempGoalPositions[manager.getTotalAmount()];
+	float tempGoalPositions[manager.getTotalAmount()];
 
-  Debug::infoln("[T_Setter] started", LOCAL_DEBUG);
+	Debug::infoln("[T_Setter] started", LOCAL_DEBUG);
+	
+	auto timer = millis();
 
-  for (;;) {
-    Debug::infoln("[T_Setter]", LOCAL_DEBUG);
+	for (;;) {
+		timer = millis();
 
-    // Applies goal positions to servos only if their update flag is set.
-    // This avoids redundant communication with unchanged servos.
-    Shared::goalPositions.Get(tempGoalPositions, manager.getTotalAmount());
-    for (uint8_t id = 0; id < manager.getTotalAmount(); id++) {
-      if (Shared::goalPositions.GetFlag(id)) {
-        if (manager.setGoalPosition(id, tempGoalPositions[id])) {
-          Shared::goalPositions.SetFlag(id, false);
-        }
-      }
-    }    
+		Debug::infoln("[T_Setter]", LOCAL_DEBUG);
 
-    vTaskDelayUntil(&lastWakeTime, SET_TASK.period);
-  }
+		// Applies goal positions to servos only if their update flag is set.
+		// This avoids redundant communication with unchanged servos.
+		Shared::goalPositions.Get(tempGoalPositions, manager.getTotalAmount());
+		for (uint8_t id = 0; id < manager.getTotalAmount(); id++) {
+			if (Shared::goalPositions.GetFlag(id)) {
+				if (manager.setGoalPosition(id, tempGoalPositions[id])) {
+					Shared::goalPositions.SetFlag(id, false);
+				}
+			}
+		}    
+
+		Serial.println("Se Timer: " + String(millis() - timer));
+
+		vTaskDelayUntil(&lastWakeTime, SET_TASK.period);
+	}
 }
 
 void createTaskServoSetter() {
-  xTaskCreate(
-      TaskServoSetter,
-      "Setter",
-      SET_TASK.stackSize,
-      NULL,
-      SET_TASK.priority,   
-      NULL
-  );
+	xTaskCreate(
+			TaskServoSetter,
+			"Setter",
+			SET_TASK.stackSize,
+			NULL,
+			SET_TASK.priority,   
+			NULL
+	);
 }
 

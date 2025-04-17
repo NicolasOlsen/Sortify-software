@@ -65,7 +65,7 @@ public:
      * 
      * @return Current angle in degrees, or 0 may mean not found for dynamiexel, -1.0f means unsupported
      */
-    float getCurrentPosition(uint8_t id) const;
+    float getCurrentPosition(uint8_t id);
 
     /**
      * @brief Gets the last known error code for a DXL servo.
@@ -135,7 +135,7 @@ public:
      * 
      * @return true if all errors retrieved
      */
-    bool getErrors(DXLLibErrorCode_t* out, uint8_t size, uint8_t startIndex = 0) const;
+    bool getErrors(DXLLibErrorCode_t* out, uint8_t size, uint8_t startIndex = 0);
 
     /**
      * @brief Pings all DXL servos and returns true if all respond.
@@ -149,6 +149,7 @@ public:
 private:
     DxlServo _dxlServos[sizeDXL];
     AnalogServo _analogServos[sizeAnalog];
+    SemaphoreHandle_t _mutex;
 
     /// Total number of servos managed
     static constexpr uint8_t totalSize = sizeDXL + sizeAnalog;
@@ -161,8 +162,10 @@ bool initServoLibraries();
 template<uint8_t sizeDXL, uint8_t sizeAnalog>
 ServoManager<sizeDXL, sizeAnalog>::ServoManager(
     const DxlServo (&dxlServos)[sizeDXL],
-    const AnalogServo (&analogServos)[sizeAnalog])
-{
+    const AnalogServo (&analogServos)[sizeAnalog]) {
+
+    _mutex = xSemaphoreCreateMutex();
+
     for (uint8_t i = 0; i < sizeDXL; ++i) {
         _dxlServos[i] = dxlServos[i];
     }
@@ -173,49 +176,72 @@ ServoManager<sizeDXL, sizeAnalog>::ServoManager(
 
 template<uint8_t sizeDXL, uint8_t sizeAnalog>
 bool ServoManager<sizeDXL, sizeAnalog>::init(uint8_t id) {
-    if (id < sizeDXL) {
+    if (id >= sizeDXL) {
+        Debug::errorln("Tried to init out of DXL range", MANAGER_DEBUG);
+        return false;
+    }
+
+    ScopedLock lock(_mutex);
+    if (lock.isLocked()) {
         return _dxlServos[id].init();
     }
 
-    Debug::errorln("Tried to init out of DXL range", MANAGER_DEBUG);
-    return false; // Analog servos don’t need init
+    return false;
 }
+
 
 template<uint8_t sizeDXL, uint8_t sizeAnalog>
 bool ServoManager<sizeDXL, sizeAnalog>::ping(uint8_t id) {
-    if (id < sizeDXL) {
+    if (id >= sizeDXL) {
+        Debug::errorln("Tried to ping out of DXL range", MANAGER_DEBUG);
+        return false;
+    }
+
+    ScopedLock lock(_mutex);
+    if (lock.isLocked()) {
         return _dxlServos[id].ping();
     }
 
-    Debug::errorln("Tried to ping out of DXL range", MANAGER_DEBUG);
     return false;
 }
 
 template<uint8_t sizeDXL, uint8_t sizeAnalog>
 bool ServoManager<sizeDXL, sizeAnalog>::setGoalPosition(uint8_t id, float degrees) {
+    ScopedLock lock(_mutex);
+    if (!lock.isLocked()) return false;
+
     if (id < sizeDXL) {
         return _dxlServos[id].setPosition(degrees);
     } else if (id < sizeDXL + sizeAnalog) {
         return _analogServos[id - sizeDXL].setToPosition(degrees);
     }
+
     Debug::errorln("Tried to set position out of total range", MANAGER_DEBUG);
     return false;
 }
 
 template<uint8_t sizeDXL, uint8_t sizeAnalog>
-float ServoManager<sizeDXL, sizeAnalog>::getCurrentPosition(uint8_t id) const {
+float ServoManager<sizeDXL, sizeAnalog>::getCurrentPosition(uint8_t id) {
+    ScopedLock lock(_mutex);
+    if (!lock.isLocked()) return -1.0f;
+
     if (id < sizeDXL) {
         return _dxlServos[id].getPosition();
     }
+
     Debug::errorln("Tried to get position out of DXL range", MANAGER_DEBUG);
     return -1.0f;
 }
 
 template<uint8_t sizeDXL, uint8_t sizeAnalog>
 DXLLibErrorCode_t ServoManager<sizeDXL, sizeAnalog>::getError(uint8_t id) {
+    ScopedLock lock(_mutex);
+    if (!lock.isLocked()) return DXL_LIB_OK;
+
     if (id < sizeDXL) {
         return _dxlServos[id].getLastError();
     }
+
     Debug::errorln("Tried to get error out of DXL range", MANAGER_DEBUG);
     return DXL_LIB_OK; // Return OK for analog
 }
@@ -234,8 +260,13 @@ bool ServoManager<sizeDXL, sizeAnalog>::checkPositionInAllowedRange(uint8_t id, 
 template<uint8_t sizeDXL, uint8_t sizeAnalog>
 bool ServoManager<sizeDXL, sizeAnalog>::initAll() {
     bool allOk = true;
-    for (uint8_t i = 0; i < sizeDXL; ++i) {
-        if (!_dxlServos[i].initWithRetry()) allOk = false;
+    ScopedLock lock(_mutex);
+    if (lock.isLocked()) {
+        for (uint8_t i = 0; i < sizeDXL; ++i) {
+            if (!_dxlServos[i].initWithRetry()) allOk = false;
+        }
+    } else {
+        return false;
     }
     return allOk;
 }
@@ -243,8 +274,13 @@ bool ServoManager<sizeDXL, sizeAnalog>::initAll() {
 template<uint8_t sizeDXL, uint8_t sizeAnalog>
 bool ServoManager<sizeDXL, sizeAnalog>::pingAll() {
     bool allOk = true;
-    for (uint8_t i = 0; i < sizeDXL; ++i) {
-        if (!_dxlServos[i].ping()) allOk = false;
+    ScopedLock lock(_mutex);
+    if (lock.isLocked()) {
+        for (uint8_t i = 0; i < sizeDXL; ++i) {
+            if (!_dxlServos[i].ping()) allOk = false;
+        }
+    } else {
+        return false;
     }
     return allOk;
 }
@@ -254,11 +290,21 @@ bool ServoManager<sizeDXL, sizeAnalog>::setGoalPositions(const float* goalPositi
     if (startIndex + size > totalSize) return false;
 
     bool allOk = true;
-    for (uint8_t i = 0; i < totalSize; ++i) {
-        uint8_t id = startIndex + i;
-        if (!setGoalPosition(id, goalPositions[i])) {
-            allOk = false;
+    ScopedLock lock(_mutex);
+    if (lock.isLocked()) {
+        for (uint8_t i = 0; i < size; ++i) {
+            uint8_t id = startIndex + i;
+            if (id < sizeDXL) {
+                if (!_dxlServos[id].setPosition(goalPositions[i])) allOk = false;
+            } else if (id < totalSize) {
+                if (!_analogServos[id - sizeDXL].setToPosition(goalPositions[i])) allOk = false;
+            } else {
+                Debug::errorln("Tried to set position out of total range", MANAGER_DEBUG);
+                allOk = false;
+            }
         }
+    } else {
+        return false;
     }
     return allOk;
 }
@@ -268,10 +314,15 @@ bool ServoManager<sizeDXL, sizeAnalog>::setGoalVelocities(const float* goalVeloc
     if (startIndex + size > sizeDXL) return false;
 
     bool allOk = true;
-    for (uint8_t i = 0; i < size; ++i) {
-        if (!_dxlServos[startIndex + i].setVelocity(goalVelocities[i])) {
-            allOk = false;
+    ScopedLock lock(_mutex);
+    if (lock.isLocked()) {
+        for (uint8_t i = 0; i < size; ++i) {
+            if (!_dxlServos[startIndex + i].setVelocity(goalVelocities[i])) {
+                allOk = false;
+            }
         }
+    } else {
+        return false;
     }
     return allOk;
 }
@@ -280,18 +331,28 @@ template<uint8_t sizeDXL, uint8_t sizeAnalog>
 bool ServoManager<sizeDXL, sizeAnalog>::getCurrentPositions(float* out, uint8_t size, uint8_t startIndex) {
     if (startIndex + size > sizeDXL) return false;
 
-    for (uint8_t i = 0; i < size; ++i) {
-        out[i] = _dxlServos[startIndex + i].getPosition();
+    ScopedLock lock(_mutex);
+    if (lock.isLocked()) {
+        for (uint8_t i = 0; i < size; ++i) {
+            out[i] = _dxlServos[startIndex + i].getPosition();
+        }
+    } else {
+        return false;
     }
     return true;
 }
 
 template<uint8_t sizeDXL, uint8_t sizeAnalog>
-bool ServoManager<sizeDXL, sizeAnalog>::getErrors(DXLLibErrorCode_t* out, uint8_t size, uint8_t startIndex) const {
+bool ServoManager<sizeDXL, sizeAnalog>::getErrors(DXLLibErrorCode_t* out, uint8_t size, uint8_t startIndex) {
     if (startIndex + size > sizeDXL) return false;
 
-    for (uint8_t i = 0; i < size; ++i) {
-        out[i] = _dxlServos[startIndex + i].getLastError();
+    ScopedLock lock(_mutex);
+    if (lock.isLocked()) {
+        for (uint8_t i = 0; i < size; ++i) {
+            out[i] = _dxlServos[startIndex + i].getLastError();
+        }
+    } else {
+        return false;
     }
     return true;
 }
