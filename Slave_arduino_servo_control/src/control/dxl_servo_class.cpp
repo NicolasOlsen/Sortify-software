@@ -1,23 +1,21 @@
 #include "config/servo_config.h"
 
 #include "control/dxl_servo_class.h"
-#include "utils/Debug.h"
+#include "utils/debug_utils.h"
 #include "utils/math_utils.h"
 
 // File-local DynamixelShield instance
 static DynamixelShield dxlDriver;
 
-constexpr bool DXL_DEBUG = true;
-
 bool initDxlServoDriver() {
     dxlDriver.begin(BAUDRATE_DXL);  // BAUDRATE_DXL if you have it defined elsewhere
     if (dxlDriver.getLastLibErrCode() == D2A_LIB_ERROR_NULLPTR_PORT_HANDLER) {
-        Debug::errorln("Dynamixel driver failed to begin()", DXL_DEBUG);
+        Debug::errorln("Dynamixel driver failed to begin()");
         return false;
     }
 
     dxlDriver.setPortProtocolVersion(DXL_PROTOCOL_VERSION);
-    Debug::infoln("Dynamixel driver initialized successfully", DXL_DEBUG);
+    Debug::infoln("Dynamixel driver initialized successfully");
     return true;
 }
 
@@ -34,7 +32,7 @@ bool DxlServo::init() {
     _lastErrorCode = dxlDriver.getLastLibErrCode();
 
     if (!ok) {
-        Debug::errorln("DxlServo[" + String(_id) + "]: Ping failed", DXL_DEBUG);
+        Debug::errorln("DxlServo[" + String(_id) + "]: Ping failed");
         return false;
     }
 
@@ -42,23 +40,23 @@ bool DxlServo::init() {
     dxlDriver.setOperatingMode(_id, OP_POSITION);
     dxlDriver.torqueOn(_id);
 
-    Debug::infoln("DxlServo[" + String(_id) + "]: Ping successful", DXL_DEBUG);
+    Debug::infoln("DxlServo[" + String(_id) + "]: Ping successful");
     return true;
 }
 
 bool DxlServo::initWithRetry(uint8_t maxAttempts) {
     for (uint8_t attempt = 1; attempt <= maxAttempts; ++attempt) {
-        Debug::infoln("DxlServo[" + String(_id) + "]: Init attempt " + String(attempt), DXL_DEBUG);
+        Debug::infoln("DxlServo[" + String(_id) + "]: Init attempt " + String(attempt));
 
         if (init()) {
-            Debug::infoln("DxlServo[" + String(_id) + "]: Init succeeded", DXL_DEBUG);
+            Debug::infoln("DxlServo[" + String(_id) + "]: Init succeeded");
             return true;
         }
 
-        Debug::errorln("DxlServo[" + String(_id) + "]: Init failed on attempt " + String(attempt), DXL_DEBUG);
+        Debug::errorln("DxlServo[" + String(_id) + "]: Init failed on attempt " + String(attempt));
     }
 
-    Debug::errorln("DxlServo[" + String(_id) + "]: Failed to initialize after " + String(maxAttempts) + " attempts", DXL_DEBUG);
+    Debug::errorln("DxlServo[" + String(_id) + "]: Failed to initialize after " + String(maxAttempts) + " attempts");
     return false;
 }
 
@@ -68,9 +66,9 @@ bool DxlServo::ping() {
     _lastErrorCode = dxlDriver.getLastLibErrCode();
 
     if (success) {
-        Debug::infoln("DxlServo[" + String(_id) + "]: Ping successful", DXL_DEBUG);
+        Debug::infoln("DxlServo[" + String(_id) + "]: Ping successful");
     } else {
-        Debug::errorln("DxlServo[" + String(_id) + "]: Ping failed", DXL_DEBUG);
+        Debug::errorln("DxlServo[" + String(_id) + "]: Ping failed");
     }
 
     return success;
@@ -83,11 +81,11 @@ bool DxlServo::setPosition(float position) {
     _lastErrorCode = dxlDriver.getLastLibErrCode();
 
     if (!ok) {
-        Debug::errorln("DxlServo[" + String(_id) + "]: Failed to set position to " + String(position), DXL_DEBUG);
+        Debug::errorln("DxlServo[" + String(_id) + "]: Failed to set position to " + String(position));
         return false;
     }
 
-    Debug::infoln("DxlServo[" + String(_id) + "]: Position set to " + String(clamped), DXL_DEBUG);
+    Debug::infoln("DxlServo[" + String(_id) + "]: Position set to " + String(clamped));
     return true;
 }
 
@@ -97,11 +95,11 @@ bool DxlServo::setVelocity(float velocityDegPerSec) {
     _lastErrorCode = dxlDriver.getLastLibErrCode();
 
     if (!ok) {
-        Debug::errorln("DxlServo[" + String(_id) + "]: Failed to set velocity to " + String(velocityDegPerSec) + " deg/s", DXL_DEBUG);
+        Debug::errorln("DxlServo[" + String(_id) + "]: Failed to set velocity to " + String(velocityDegPerSec) + " deg/s");
         return false;
     }
 
-    Debug::infoln("DxlServo[" + String(_id) + "]: Velocity set to " + String(velocityDegPerSec) + " deg/s (raw: " + String(rawVelocity) + ")", DXL_DEBUG);
+    Debug::infoln("DxlServo[" + String(_id) + "]: Velocity set to " + String(velocityDegPerSec) + " deg/s (raw: " + String(rawVelocity) + ")");
     return true;
 }
 
@@ -110,10 +108,10 @@ float DxlServo::getPosition() {
     _lastErrorCode = dxlDriver.getLastLibErrCode();
 
     if (_lastErrorCode != DXL_LIB_OK) {
-        Debug::errorln("DxlServo[" + String(_id) + "]: Failed to read position", DXL_DEBUG);
+        Debug::errorln("DxlServo[" + String(_id) + "]: Failed to read position");
     }
     else {
-        Debug::infoln("DxlServo[" + String(_id) + "]: Current position is " + String(position), DXL_DEBUG);
+        Debug::infoln("DxlServo[" + String(_id) + "]: Current position is " + String(position));
     }
     return position;
 }

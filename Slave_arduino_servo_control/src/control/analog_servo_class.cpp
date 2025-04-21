@@ -1,7 +1,7 @@
 #include <Adafruit_PWMServoDriver.h>
 
 #include "control/analog_servo_class.h"
-#include "utils/Debug.h"
+#include "utils/debug_utils.h"
 #include "utils/math_utils.h"
 
 
@@ -33,10 +33,10 @@ bool AnalogServo::setToPosition(float position) {
     uint16_t pwmVal = degreesToPwm(clamped);
 
     if (pwmDriver.setPWM(_channel, 0, pwmVal) == 0) {
-        Debug::infoln("AnalogServo[" + String(_channel) + "]: Set channel to " + String(clamped) + "° (PWM " + String(pwmVal) + ")", true);
+        Debug::infoln("AnalogServo[" + String(_channel) + "]: Set channel to " + String(clamped) + "° (PWM " + String(pwmVal) + ")");
         return true;
     }
-    Debug::errorln("AnalogServo[" + String(_channel) + "]: Failed to set position to " + String(position), true);
+    Debug::errorln("AnalogServo[" + String(_channel) + "]: Failed to set position to " + String(position));
     return false;
 }
 

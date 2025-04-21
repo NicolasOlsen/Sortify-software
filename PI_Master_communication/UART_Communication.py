@@ -14,39 +14,36 @@ logger = logging.getLogger(__name__)
 logger.propagate = False
 
 if not logger.hasHandlers():
-    handler = logging.StreamHandler()
-    handler.setFormatter(logging.Formatter('[%(levelname)s] %(message)s'))
-    logger.addHandler(handler)
+	handler = logging.StreamHandler()
+	handler.setFormatter(logging.Formatter('[%(levelname)s] %(message)s'))
+	logger.addHandler(handler)
 
 
 
 from enum import Enum
 
 class CommandCode(Enum):
-	# High-Level Communication
-	HEARTBEAT                = 0x01  # Master checks if Arduino is alive
-	ACKNOWLEDGE              = 0x02  # Arduino acknowledges command
+	# Status and Control
+	HEARTBEAT       = 0x01
+	ACKNOWLEDGE     = 0x02
+	NACK            = 0x03
 
-	# Servo Positioning
-	REQUEST_SERVO_POSITIONS  = 0x03
-	RESPOND_SERVO_POSITIONS  = 0x04
+	# Position
+	READ_POSITION_RANGE     = 0x04
+	WRITE_POSITION_RANGE    = 0x05
 
-	SET_SERVO_POSITION       = 0x05  # Master sets a single servo position
-	SET_ALL_POSITIONS        = 0x06  # Master sets all joint positions (excluding gripper)
-	SET_SERVO_GOAL_VELOCITY  = 0x07  # Master sets goal velocity for single servo
-	SET_ALL_GOAL_VELOCITY    = 0x08  # Master sets max velocity for all servos
-	STOP_MOVEMENT            = 0x09  # Master stops servo movement
+	# Velocity
+	WRITE_VELOCITY_RANGE    = 0x06
 
-	# Error Handling
-	REQUEST_ERROR_STATUS     = 0x0A
-	RESPOND_ERROR_STATUS     = 0x0B
-	COMMUNICATION_ERROR      = 0x0C  # Indicates a protocol-level issue
+	# Error
+	READ_ERROR_RANGE        = 0x07
 
-	# Internal / Meta Types
-	COMMAND_RESPONSE         = 0xF0  # Generic command with no payload return
-	BAD_CRC                  = 0xF1  # CRC mismatch
-	TIMEOUT                  = 0xF2  # Response timeout (host side)
-	UNKNOWN                  = 0xFF  # Invalid / unrecognized packet
+	# Internal / Meta
+	COMMAND_RESPONSE        = 0xF0
+	BAD_CRC                 = 0xF1
+	TIMEOUT                 = 0xF2
+	UNKNOWN                 = 0xFF
+
 
 class SystemStatus(Enum):
 	NO_CONTACT = 0x00
@@ -101,35 +98,35 @@ class PacketState(Enum):
 # ========== UART HANDLER ==========
 class MasterUART:
 	"""
-    A UART communication handler for sending and receiving structured packets
-    between a host (e.g., Raspberry Pi) and an Arduino-based servo controller.
+	A UART communication handler for sending and receiving structured packets
+	between a host (e.g., Raspberry Pi) and an Arduino-based servo controller.
 
-    This class handles:
-    - Constructing and sending command packets
-    - Waiting for and parsing structured response packets
-    - Error checking (CRC and timeouts)
-    - Providing high-level APIs for specific robot actions
+	This class handles:
+	- Constructing and sending command packets
+	- Waiting for and parsing structured response packets
+	- Error checking (CRC and timeouts)
+	- Providing high-level APIs for specific robot actions
 
-    Attributes:
-        ser (serial.Serial): The serial interface.
-        crc16 (CRC16): Instance of CRC16 checksum calculator.
-        START_BYTES (bytes): Expected start bytes for every packet.
-        read_timeout (float): Maximum time to wait for a full packet.
-        last_packet (bytes): The last packet sent (for debug/resend if needed).
-        MAX_RETRIES (int): Max number of attempts for sending a command.
-    """
+	Attributes:
+		ser (serial.Serial): The serial interface.
+		crc16 (CRC16): Instance of CRC16 checksum calculator.
+		START_BYTES (bytes): Expected start bytes for every packet.
+		read_timeout (float): Maximum time to wait for a full packet.
+		last_packet (bytes): The last packet sent (for debug/resend if needed).
+		MAX_RETRIES (int): Max number of attempts for sending a command.
+	"""
 
 	def __init__(self, port, baudrate=1000000, timeout=0.1, read_timeout=1.0, start_bytes=b'\xAA\x55', max_retries=3):
 		"""
-        Initialize the UART handler and set up the serial port.
+		Initialize the UART handler and set up the serial port.
 
-        Args:
-            port (str): Serial port (e.g., 'COM3' or '/dev/ttyUSB0').
-            baudrate (int): Baud rate for UART communication.
-            timeout (float): PySerial internal byte read timeout (in seconds).
-            read_timeout (float): Max time to wait for full response packet.
-            start_bytes (bytes): Byte sequence that marks the start of a packet.
-        """
+		Args:
+			port (str): Serial port (e.g., 'COM3' or '/dev/ttyUSB0').
+			baudrate (int): Baud rate for UART communication.
+			timeout (float): PySerial internal byte read timeout (in seconds).
+			read_timeout (float): Max time to wait for full response packet.
+			start_bytes (bytes): Byte sequence that marks the start of a packet.
+		"""
 		self.ser = serial.Serial(port, baudrate=baudrate, timeout=timeout)
 		self.ser.setDTR(False)  # Prevent Arduino reset
 		time.sleep(2)  # Let Arduino boot
@@ -143,17 +140,17 @@ class MasterUART:
 
 	def _build_packet(self, command, payload=b''):
 		"""
-        Build a complete packet with start bytes, length, command, payload, and CRC.
+		Build a complete packet with start bytes, length, command, payload, and CRC.
 
-        Args:
-            command (int): Command byte (from CommandCode).
-            payload (bytes): Optional payload bytes.
+		Args:
+			command (int): Command byte (from CommandCode).
+			payload (bytes): Optional payload bytes.
 
-        Returns:
-            bytes: Fully constructed packet ready to send.
-        """
+		Returns:
+			bytes: Fully constructed packet ready to send.
+		"""
 		body = bytearray()
-		body.append(len(payload) + 4)  # len = length + command + payload + CRC(2)
+		body.append(len(payload) + 4)  # len = command(1) + payload + system_status(1) + CRC(2)
 		body.append(command)
 		body.extend(payload)
 
@@ -166,15 +163,15 @@ class MasterUART:
 
 	def _send_command(self, command, payload=b'') -> ParsedPacketResult:
 		"""
-        Send a command and wait for a response, with retries on failure.
+		Send a command and wait for a response, with retries on failure.
 
-        Args:
-            command (int): Command code.
-            payload (bytes): Optional payload.
+		Args:
+			command (int): Command code.
+			payload (bytes): Optional payload.
 
-        Returns:
-            ParsedPacketResult: Parsed response or communication error result.
-        """
+		Returns:
+			ParsedPacketResult: Parsed response or communication error result.
+		"""
 		packet = self._build_packet(command, payload)
 		self.last_packet = packet
 
@@ -195,7 +192,7 @@ class MasterUART:
 
 		timeout_payload = struct.pack('<I', ComErrorCode.COMM_TIMEOUT.value)
 		return ParsedPacketResult(
-			packet_type=CommandCode.COMMUNICATION_ERROR,
+			packet_type=CommandCode.NACK,
 			command=command,
 			payload=timeout_payload,
 			system_status=SystemStatus.NO_CONTACT,
@@ -206,11 +203,11 @@ class MasterUART:
 
 	def _read_aligned_packet(self):
 		"""
-        Wait for and read a full aligned packet using a state machine.
+		Wait for and read a full aligned packet using a state machine.
 
-        Returns:
-            bytes | None: Complete packet if received, else None on timeout.
-        """
+		Returns:
+			bytes | None: Complete packet if received, else None on timeout.
+		"""
 		packet = bytearray()
 		length = 0
 		start_time = time.time()
@@ -251,14 +248,14 @@ class MasterUART:
 
 	def _parse_packet(self, packet: bytes) -> ParsedPacketResult:
 		"""
-        Parses a received packet into its components and checks CRC.
+		Parses a received packet into its components and checks CRC.
 
-        Args:
-            packet (bytes): Raw received packet.
+		Args:
+			packet (bytes): Raw received packet.
 
-        Returns:
-            ParsedPacketResult: Structured result containing payload, status, and type info.
-        """
+		Returns:
+			ParsedPacketResult: Structured result containing payload, status, and type info.
+		"""
 		start_len = len(self.START_BYTES)
 		if not packet.startswith(self.START_BYTES):
 			return ParsedPacketResult(CommandCode.UNKNOWN, 0, b'', 0, False)
@@ -281,12 +278,9 @@ class MasterUART:
 		if not crc_ok:
 			return ParsedPacketResult(CommandCode.BAD_CRC, command, payload, system_status, False)
 
-		if command == CommandCode.COMMUNICATION_ERROR.value:
-			if len(payload) >= 4:
-				code = struct.unpack('<I', payload[:4])[0]
-
+		if command == CommandCode.NACK.value:
 			return ParsedPacketResult(
-				packet_type=CommandCode.COMMUNICATION_ERROR,
+				packet_type=CommandCode.NACK,
 				command=command,
 				payload=payload,
 				system_status=system_status,
@@ -295,11 +289,16 @@ class MasterUART:
 
 		command_to_type = {
 			CommandCode.ACKNOWLEDGE.value: CommandCode.ACKNOWLEDGE,
-			CommandCode.RESPOND_SERVO_POSITIONS.value: CommandCode.RESPOND_SERVO_POSITIONS,
-			CommandCode.RESPOND_ERROR_STATUS.value: CommandCode.RESPOND_ERROR_STATUS
+			CommandCode.NACK.value: CommandCode.NACK,
+			CommandCode.READ_POSITION_RANGE.value: CommandCode.READ_POSITION_RANGE,
+			CommandCode.READ_ERROR_RANGE.value: CommandCode.READ_ERROR_RANGE,
 		}
 
 		packet_type = command_to_type.get(command, CommandCode.COMMAND_RESPONSE)
+
+		# Log unknown command if unexpected
+		if packet_type == CommandCode.COMMAND_RESPONSE:
+			logger.warning(f"Unknown command code: 0x{command:02X}")
 
 		return ParsedPacketResult(
 			packet_type=packet_type,
@@ -309,22 +308,11 @@ class MasterUART:
 			crc_ok=True
 		)
 	
-	def _to_comm_response(self, result: ParsedPacketResult,	expected_type: CommandCode,
-		unpack_fmt: Optional[str] = None) -> CommResponse:
-		"""
-        Converts a parsed packet into a CommResponse for high-level API.
-
-        Args:
-            result (ParsedPacketResult): Parsed response from device.
-            expected_type (CommandCode): Expected type of response.
-            unpack_fmt (str, optional): Struct format for payload unpacking (e.g., 'f' for floats).
-
-        Returns:
-            CommResponse: Result including success flag, data or error, and system status.
-        """
-		if result.packet_type == CommandCode.COMMUNICATION_ERROR:
-			if len(result.payload) >= 4:
-				code = struct.unpack('<I', result.payload[:4])[0]
+	def _to_comm_response(self, result: ParsedPacketResult, expected_type: CommandCode, unpack_fmt: Optional[str] = None) -> CommResponse:
+		# FIRST handle NACK
+		if result.packet_type == CommandCode.NACK:
+			if result.payload:
+				code = result.payload[0]
 				try:
 					error_enum = ComErrorCode(code)
 				except ValueError:
@@ -334,10 +322,11 @@ class MasterUART:
 
 			return CommResponse(False, error_enum, result.system_status)
 
-		if not result.crc_ok or result.packet_type != expected_type:
+		# THEN check for CRC or unexpected command
+		if not result.crc_ok or result.command != expected_type.value:
 			return CommResponse(False, result.packet_type, result.system_status)
 
-		# Successful, optionally unpack
+		# Otherwise, parse the payload
 		value = None
 		if unpack_fmt:
 			size = struct.calcsize(unpack_fmt)
@@ -351,112 +340,73 @@ class MasterUART:
 	
 	def heartbeat(self) -> CommResponse:
 		"""
-        Sends a heartbeat command to verify Arduino is alive.
+		Sends a heartbeat command to verify Arduino is alive.
 
-        Returns:
-            CommResponse: True if ACK received, else error type.
-        """
+		Returns:
+			CommResponse: True if ACK received, else error type.
+		"""
 		result = self._send_command(CommandCode.HEARTBEAT.value)
 		return self._to_comm_response(result, CommandCode.ACKNOWLEDGE)
 
-	def set_servo_position(self, servo_id: int, position: float) -> CommResponse:
+	def write_position_range(self, start_id: int, values: list[float]) -> CommResponse:
 		"""
-        Sets the target position for a specific servo.
+		Sends target positions for a range of servos starting at start_id.
 
-        Args:
-            servo_id (int): Servo identifier (1–5).
-            position (float): Desired angle/position in degrees or radians.
+		Args:
+			start_id (int): The starting servo ID.
+			values (list[float]): List of float positions to set.
 
-        Returns:
-            CommResponse: Result of the command.
-        """
-		payload = bytes([servo_id]) + struct.pack('<f', position)
-		result = self._send_command(CommandCode.SET_SERVO_POSITION.value, payload)
+		Returns:
+			CommResponse: True if ACK received, else error.
+		"""
+		payload = bytes([start_id, len(values)]) + struct.pack(f'<{len(values)}f', *values)
+		result = self._send_command(CommandCode.WRITE_POSITION_RANGE.value, payload)
 		return self._to_comm_response(result, CommandCode.ACKNOWLEDGE)
 
-	def set_all_positions(self, positions: list[float]) -> CommResponse:
+	def read_position_range(self, start_id: int, count: int) -> CommResponse:
 		"""
-        Sets target positions for all servos (except gripper).
+		Requests current positions of a range of servos.
 
-        Args:
-            positions (list[float]): List of 4 floats representing each joint.
+		Args:
+			start_id (int): Starting servo ID.
+			count (int): Number of servos to read.
 
-        Raises:
-            ValueError: If the number of positions is not 4.
+		Returns:
+			CommResponse: List of float positions or error.
+		"""
+		payload = bytes([start_id, count])
+		result = self._send_command(CommandCode.READ_POSITION_RANGE.value, payload)
+		return self._to_comm_response(result, CommandCode.READ_POSITION_RANGE, unpack_fmt='f')
 
-        Returns:
-            CommResponse: Result of the command.
-        """
-		if len(positions) != 4:
-			raise ValueError("Expected 4 joint positions")
-		payload = struct.pack('<4f', *positions)
-		result = self._send_command(CommandCode.SET_ALL_POSITIONS.value, payload)
+	def write_velocity_range(self, start_id: int, values: list[float]) -> CommResponse:
+		"""
+		Sets velocities for a range of servos starting at start_id.
+
+		Args:
+			start_id (int): The starting servo ID.
+			values (list[float]): List of float velocities to set.
+
+		Returns:
+			CommResponse: True if ACK received, else error.
+		"""
+		payload = bytes([start_id, len(values)]) + struct.pack(f'<{len(values)}f', *values)
+		result = self._send_command(CommandCode.WRITE_VELOCITY_RANGE.value, payload)
 		return self._to_comm_response(result, CommandCode.ACKNOWLEDGE)
 
-	def set_servo_velocity(self, servo_id: int, velocity: float) -> CommResponse:
+	def read_error_range(self, start_id: int, count: int) -> CommResponse:
 		"""
-        Sets the goal velocity for a specific servo.
+		Requests error codes from a range of servos.
 
-        Args:
-            servo_id (int): Servo identifier.
-            velocity (float): Velocity in degrees/s or unit/s.
+		Args:
+			start_id (int): Starting servo ID.
+			count (int): Number of servos to query.
 
-        Returns:
-            CommResponse: Result of the command.
-        """
-		payload = bytes([servo_id]) + struct.pack('<f', velocity)
-		result = self._send_command(CommandCode.SET_SERVO_GOAL_VELOCITY.value, payload)
-		return self._to_comm_response(result, CommandCode.ACKNOWLEDGE)
-
-	def set_all_velocities(self, velocities: list[float]) -> CommResponse:
+		Returns:
+			CommResponse: List of uint32 error flags or error.
 		"""
-        Sets velocities for all servos.
-
-        Args:
-            velocities (list[float]): 4 values for each servo (excluding gripper).
-
-        Raises:
-            ValueError: If the list does not contain 4 values.
-
-        Returns:
-            CommResponse: Result of the command.
-        """
-		if len(velocities) != 4:
-			raise ValueError("Expected 4 velocity values")
-		payload = struct.pack('<4f', *velocities)
-		result = self._send_command(CommandCode.SET_ALL_GOAL_VELOCITY.value, payload)
-		return self._to_comm_response(result, CommandCode.ACKNOWLEDGE)
-
-	def stop_movement(self) -> CommResponse:
-		"""
-        Halts all servo movements immediately.
-
-        Returns:
-            CommResponse: Result of the command.
-        """
-		result = self._send_command(CommandCode.STOP_MOVEMENT.value)
-		return self._to_comm_response(result, CommandCode.ACKNOWLEDGE)
-
-	def get_servo_positions(self) -> CommResponse:
-		"""
-        Requests the current positions of all joints (excluding gripper).
-
-        Returns:
-            CommResponse: List of floats if successful, else error.
-        """
-		result = self._send_command(CommandCode.REQUEST_SERVO_POSITIONS.value)
-		return self._to_comm_response(result, CommandCode.RESPOND_SERVO_POSITIONS, unpack_fmt='f')
-
-	def get_error_report(self) -> CommResponse:
-		"""
-        Requests the current communication or hardware error report.
-
-        Returns:
-            CommResponse: List of uint32 error codes if successful.
-        """
-		result = self._send_command(CommandCode.REQUEST_ERROR_STATUS.value)
-		return self._to_comm_response(result, CommandCode.RESPOND_ERROR_STATUS, unpack_fmt='I')
-
+		payload = bytes([start_id, count])
+		result = self._send_command(CommandCode.READ_ERROR_RANGE.value, payload)
+		return self._to_comm_response(result, CommandCode.READ_ERROR_RANGE, unpack_fmt='I')
 
 	def close(self):
 		self.ser.close()

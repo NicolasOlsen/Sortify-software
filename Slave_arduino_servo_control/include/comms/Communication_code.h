@@ -3,34 +3,26 @@
 
 #include <stdint.h>
 
-namespace Com_code {
+namespace COMM_CODE {
     // Main Command List
     // These commands are used for communication between the SBC (such as a Raspberry Pi) and the Arduino.
     // The SBC sends these commands to request information or control the servos.
     enum class MainCommand : uint8_t {
         // Status and Health
-        HEARTBEAT       = 0x01,     // Master checks if Arduino is alive (Arduino responds with ACKNOWLEDGE)
-        ACKNOWLEDGE,                // Generic ACK when no specific data is returned
+        HEARTBEAT       = 0x01,     // Master checks if Arduino is alive (Arduino responds with ACK)
+        ACK,                        // Generic ACK when no specific data is returned
+        NACK,                       // Negative Acknowledge, payload contains ComErrorCode
     
-        // Servo Information
-        REQUEST_SERVO_POSITIONS,    // Master requests positions of all servos (excluding gripper)
-        RESPOND_SERVO_POSITIONS,    // Arduino responds with [Base, Shoulder, Elbow, Wrist]
-    
-        // Motion Control
-        SET_SERVO_POSITION,         // Master sets a single servo position
-        SET_ALL_POSITIONS,          // Master sets all positions (excluding gripper)
-        SET_SERVO_GOAL_VELOCITY,    // Master sets a single servo goal velocity
-        SET_ALL_GOAL_VELOCITY,      // Master sets all servos max velocity
-        STOP_MOVEMENT,              // Master sets all positions to the current position
-    
-        // Fault/Error Reporting
-        REQUEST_ERROR_STATUS,   // Master requests current error statuses
-        RESPOND_ERROR_STATUS,   // Arduino responds with the current error codes
-    
-        COMMUNICATION_ERROR     // Indicates a communication issue was detected
-    };
+        // Flexible Position Commands
+        READ_POSITION_RANGE,        // Read positions from [start_id, count]
+        WRITE_POSITION_RANGE,       // Write positions for [start_id, count]
 
-    
+        // Flexible Velocity Command
+        WRITE_VELOCITY_RANGE,       // Write velocities for [start_id, count]
+
+        // Flexible Error Reporting
+        READ_ERROR_RANGE            // Read error status from [start_id, count]
+    };    
 
     // System Status Codes
     // Arduino sends one of these status codes in response to REQUEST_STATUS.
@@ -41,10 +33,9 @@ namespace Com_code {
         FAULT,                  // System is in an error state and cannot recover (sends the number of errors)
     };
 
-    
     // Error Codes
-    // These errors are reported with ERROR_REPORT.
-    enum class ComErrorCode : uint8_t {    
+    // These errors are reported with a NACK payload or in error reports.
+    enum class ComErrorCode : uint8_t {
         COMM_TIMEOUT = 0x01,        // Timeout waiting for full packet
         CHECKSUM_ERROR,             // CRC16 mismatch
         UNKNOWN_COMMAND,            // Unrecognized command byte
@@ -53,17 +44,15 @@ namespace Com_code {
         INVALID_PAYLOAD_SIZE,       // Payload size does not match expected for given command
         ID_OUT_OF_RANGE             // The requested id is out of range
     };
-    
-    
-    
+
     // Servo Identifiers
     // Used to reference a specific servo motor when setting positions or stopping individual servos.
     enum class ServoId : uint8_t {
-        BASE     = 0x01,  // Base rotation servo
-        SHOULDER = 0x02,  // Shoulder joint servo
-        ELBOW    = 0x03,  // Elbow joint servo
-        WRIST    = 0x04,  // Wrist joint servo
-        GRIPPER  = 0x05   // Gripper (NOT INCLUDED in SET_ALL_POSITIONS)
+        BASE     = 0x00,  // Base rotation servo
+        SHOULDER = 0x01,  // Shoulder joint servo
+        ELBOW    = 0x02,  // Elbow joint servo
+        WRIST    = 0x03,  // Wrist joint servo
+        GRIPPER  = 0x04   // Gripper (NOT INCLUDED in SET_ALL_POSITIONS)
     };
 }
 

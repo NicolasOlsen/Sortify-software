@@ -6,9 +6,9 @@
 #include "config/task_config.h"
 #include "shared/shared_objects.h"
 
-#include "utils/Debug.h"
+#include "utils/debug_utils.h"
 
-constexpr bool LOCAL_DEBUG = true;
+using namespace COMM_CODE;
 
 auto& manager = Shared::servoManager;
 
@@ -23,14 +23,14 @@ void checkForMovement();
 static void TaskThink(void *pvParameters) {
 	TickType_t lastWakeTime = xTaskGetTickCount();
 
-	Debug::infoln("[T_Think] started", LOCAL_DEBUG);
+	Debug::infoln("[T_Think] started");
 
 	auto timer = millis();
 
 	for (;;) {
 	  	timer = millis();
 
-	  	Debug::infoln("[T_Think]", LOCAL_DEBUG);
+	  	Debug::infoln("[T_Think]");
 
 		checkForErrors();
 		
@@ -79,11 +79,11 @@ void checkForMovement() {
 	// Set system state based on movement status
 	if (idle) {
 		Shared::systemState.Set(StatusCode::IDLE);
-		Debug::infoln("[T_Think] Switching to IDLE state", LOCAL_DEBUG);
+		Debug::infoln("[T_Think] Switching to IDLE state");
 	}
 	else {
 		Shared::systemState.Set(StatusCode::MOVING);
-		Debug::infoln("[T_Think] Switching to MOVING state", LOCAL_DEBUG);
+		Debug::infoln("[T_Think] Switching to MOVING state");
 	}
 }
 
@@ -134,7 +134,7 @@ void checkForErrors() {
 			updatedFlags[id] = false;
 			systemStateOK = false;
 
-			Debug::errorln("Critical error on servo ID: " + String(id), LOCAL_DEBUG);
+			Debug::errorln("Critical error on servo ID: " + String(id));
 		}
 	}
 
@@ -143,7 +143,7 @@ void checkForErrors() {
 
 	// If the system is NOT OK
 	if (!systemStateOK) {
-		Debug::errorln("[T_Think] Switching to FAULT state", LOCAL_DEBUG);
+		Debug::errorln("[T_Think] Switching to FAULT state");
 
 		// Freeze all movement by copying current positions as new goals
 		Shared::currentPositions.Get(

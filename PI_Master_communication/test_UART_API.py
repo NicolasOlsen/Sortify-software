@@ -1,55 +1,45 @@
-from UART_Communication import MasterUART, CommandCode
+from UART_Communication import MasterUART
 import logging
-import time
 
-# Optional: Enable debug-level logging from the API
+# Optional: Enable debug-level logging
 logging.basicConfig(level=logging.INFO)
+
 
 def print_result(name, response):
     print(f"\n--- {name} ---")
     print(f"Success: {response.success}")
-    print(f"Status: {response.system_status}")
+    print(f"System Status: {response.system_status}")
     print(f"Data: {response.value}")
 
+
 def main():
-    uart = MasterUART(port="COM3", baudrate=1000000, timeout=0.01, read_timeout=0.5, start_bytes=b'\xAA\x55')
+    uart = MasterUART(
+        port="COM3",
+        baudrate=1000000,
+        timeout=0.01,
+        read_timeout=0.6,
+        start_bytes=b'\xAA\x55'
+    )
 
     try:
-        # Heartbeat test
+        # Heartbeat
         print_result("HEARTBEAT", uart.heartbeat())
 
-        # Set single servo position (Servo 1 to 123.456)
-        print_result("SET SERVO POSITION", uart.set_servo_position(1, 123.456))
+        # Write positions to servos 0-4
+        print_result("WRITE_POSITION_RANGE", uart.write_position_range(0, [10.0, 20.0, 30.0, 40.0, 50.0]))
 
-        # Set all servo positions
-        positions = [1.0, 2.0, 3.0, 4.0]
-        print_result("SET ALL POSITIONS", uart.set_all_positions(positions))
+        # Read positions back from servos 0-4
+        print_result("READ_POSITION_RANGE", uart.read_position_range(0, 5))
 
-        # Set velocity for a single servo (Servo 1 to 5.5)
-        print_result("SET SERVO VELOCITY", uart.set_servo_velocity(1, 5.5))
+        # Write velocities to servos 0-4
+        print_result("WRITE_VELOCITY_RANGE", uart.write_velocity_range(0, [5.0, 5.5, 6.0, 6.5]))
 
-        # Set velocity for all servos
-        velocities = [10.2, 12.4, 54.7, 1.1]
-        print_result("SET ALL VELOCITIES", uart.set_all_velocities(velocities))
+        # Read error codes from servos 0-4
+        print_result("READ_ERROR_RANGE", uart.read_error_range(0, 4))
 
-        # Stop movement
-        print_result("STOP MOVEMENT", uart.stop_movement())
-
-        # Request current servo positions
-        print_result("GET SERVO POSITIONS", uart.get_servo_positions())
-
-        # Request error report
-        print_result("GET ERROR REPORT", uart.get_error_report())
-
+        # Reconfirm heartbeat
         res = uart.heartbeat()
-
-        if (res.success):
-            print("\nHeartbeat success")
-            print(f"System state: {res.system_status}")
-        else:
-            print("\nHeartbeat failed")
-            print(f"Com error: {res.value}")
-            print(f"System state: {res.system_status}")
+        print_result("HEARTBEAT CONFIRM", res)
 
     except Exception as e:
         print(f"[EXCEPTION] {e}")
@@ -57,5 +47,7 @@ def main():
     finally:
         uart.close()
 
+
 if __name__ == "__main__":
-    main()
+    for i in range(0, 1000):
+        main()

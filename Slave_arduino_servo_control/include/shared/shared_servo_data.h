@@ -5,7 +5,7 @@
 #include <DynamixelShield.h>
 #include <utils/scoped_lock.h>
 
-#include "utils/Debug.h"
+#include "utils/debug_utils.h"
 
 /**
  * @brief Shared container for thread-safe access to servo data.
@@ -138,6 +138,7 @@ template <typename T, uint8_t size>
 void SharedServoData<T, size>::Get(T* arr, uint8_t size_, uint8_t start_index, bool changeFlag) {
     if (start_index + size_ > size) {
         Debug::errorln("Tried to go out of range in get sharedData");
+        return;
     }
     
     ScopedLock lock(mutex);

@@ -1,6 +1,7 @@
 #include "shared/shared_objects.h"
 #include "shared/shared_variable.h"
 
+using namespace COMM_CODE;
 
 namespace Shared
 {

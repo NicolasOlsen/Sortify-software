@@ -177,7 +177,7 @@ ServoManager<sizeDXL, sizeAnalog>::ServoManager(
 template<uint8_t sizeDXL, uint8_t sizeAnalog>
 bool ServoManager<sizeDXL, sizeAnalog>::init(uint8_t id) {
     if (id >= sizeDXL) {
-        Debug::errorln("Tried to init out of DXL range", MANAGER_DEBUG);
+        Debug::errorln("Tried to init out of DXL range");
         return false;
     }
 
@@ -193,7 +193,7 @@ bool ServoManager<sizeDXL, sizeAnalog>::init(uint8_t id) {
 template<uint8_t sizeDXL, uint8_t sizeAnalog>
 bool ServoManager<sizeDXL, sizeAnalog>::ping(uint8_t id) {
     if (id >= sizeDXL) {
-        Debug::errorln("Tried to ping out of DXL range", MANAGER_DEBUG);
+        Debug::errorln("Tried to ping out of DXL range");
         return false;
     }
 
@@ -216,7 +216,7 @@ bool ServoManager<sizeDXL, sizeAnalog>::setGoalPosition(uint8_t id, float degree
         return _analogServos[id - sizeDXL].setToPosition(degrees);
     }
 
-    Debug::errorln("Tried to set position out of total range", MANAGER_DEBUG);
+    Debug::errorln("Tried to set position out of total range");
     return false;
 }
 
@@ -229,7 +229,7 @@ float ServoManager<sizeDXL, sizeAnalog>::getCurrentPosition(uint8_t id) {
         return _dxlServos[id].getPosition();
     }
 
-    Debug::errorln("Tried to get position out of DXL range", MANAGER_DEBUG);
+    Debug::errorln("Tried to get position out of DXL range");
     return -1.0f;
 }
 
@@ -242,7 +242,7 @@ DXLLibErrorCode_t ServoManager<sizeDXL, sizeAnalog>::getError(uint8_t id) {
         return _dxlServos[id].getLastError();
     }
 
-    Debug::errorln("Tried to get error out of DXL range", MANAGER_DEBUG);
+    Debug::errorln("Tried to get error out of DXL range");
     return DXL_LIB_OK; // Return OK for analog
 }
 
@@ -253,7 +253,7 @@ bool ServoManager<sizeDXL, sizeAnalog>::checkPositionInAllowedRange(uint8_t id, 
     } else if (id < sizeDXL + sizeAnalog) {
         return _analogServos[id - sizeDXL].checkPositionInAllowedRange(position);
     }
-    Debug::errorln("Tried to check position range out of total range", MANAGER_DEBUG);
+    Debug::errorln("Tried to check position range out of total range");
     return false;
 }
 
@@ -299,7 +299,7 @@ bool ServoManager<sizeDXL, sizeAnalog>::setGoalPositions(const float* goalPositi
             } else if (id < totalSize) {
                 if (!_analogServos[id - sizeDXL].setToPosition(goalPositions[i])) allOk = false;
             } else {
-                Debug::errorln("Tried to set position out of total range", MANAGER_DEBUG);
+                Debug::errorln("Tried to set position out of total range");
                 allOk = false;
             }
         }

@@ -21,7 +21,7 @@ struct TaskConfig {
  * @brief Communication task
  * High priority, frequent execution for critical I/O with external systems (SBC or PC).
  */
-constexpr TaskConfig COMM_TASK = { pdMS_TO_TICKS(400), 3, 512 };
+constexpr TaskConfig COMM_TASK = { pdMS_TO_TICKS(100), 3, 512 };
 
 /**
  * @brief Servo reader task

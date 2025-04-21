@@ -4,14 +4,14 @@
 #include "config/task_config.h"
 #include "shared/shared_objects.h"
 
-#include "utils/debug.h"
+#include "utils/debug_utils.h"
 
-constexpr bool LOCAL_DEBUG = true;
+using namespace COMM_CODE;
 
 static void TaskServoReader(void *pvParameters) {
 	TickType_t lastWakeTime = xTaskGetTickCount();
 
-	Debug::infoln("[T_Reader] started", LOCAL_DEBUG);
+	Debug::infoln("[T_Reader] started");
 
 	auto& manager = Shared::servoManager;
 
@@ -20,7 +20,7 @@ static void TaskServoReader(void *pvParameters) {
 
 	for (;;) {
 		auto timer = millis();
-		Debug::infoln("[T_Reader]", LOCAL_DEBUG);
+		Debug::infoln("[T_Reader]");
 
 		StatusCode tempStatus = Shared::systemState.Get();
 

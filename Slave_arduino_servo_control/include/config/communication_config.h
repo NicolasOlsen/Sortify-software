@@ -23,9 +23,7 @@ constexpr uint8_t MIN_PACKET_SIZE = START_BYTES_SIZE + 1 + 1 + 2;  // start + le
 
 constexpr uint8_t LENGTH_INDEX  = START_BYTES_SIZE;
 constexpr uint8_t COMMAND_INDEX = START_BYTES_SIZE + 1;     // Start bytes, then length byte, then main command byte
-constexpr uint8_t ID_INDEX  = COMMAND_INDEX + 1;            // Then id if its a servo specific command
-constexpr uint8_t ID_PAYLOAD_INDEX = ID_INDEX + 1;
-constexpr uint8_t PAYLOAD_INDEX = ID_INDEX;
+constexpr uint8_t PAYLOAD_INDEX = COMMAND_INDEX + 1;
 
 
 #endif // COMMUNICATION_CONFIG_H

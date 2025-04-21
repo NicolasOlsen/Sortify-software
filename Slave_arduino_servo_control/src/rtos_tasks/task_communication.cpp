@@ -4,31 +4,51 @@
 #include "rtos_tasks/task_communication.h"
 #include "config/task_config.h"
 #include "shared/shared_objects.h"
-#include "comms/UART_communication.h"
+#include "comms/uart_receive.h"
+#include "comms/packet_processing.h"
 
-#include "utils/Debug.h"
+#include "utils/task_timer.h"
+#include "utils/debug_utils.h"
 
-constexpr bool LOCAL_DEBUG = true;
+#ifdef TIMING_MODE
+    static TaskTimingStats commTiming;
+#endif
 
-QueueHandle_t uartPacketQueue;  // Global queue handle
+
+namespace UART_COMM {
+    QueueHandle_t uartPacketQueue;
+}
 
 // Communication Task
 static void TaskCommunication(void *pvParameters) {
     TickType_t lastWakeTime = xTaskGetTickCount();
 
-    UARTPacket packet;
+    UART_COMM::UARTPacket packet;
 
-    Debug::infoln("[T_Comm] started", LOCAL_DEBUG);
+    Debug::infoln("[T_Comm] started");
 
     for (;;) {
-        // Debug::infoln("[T_Comm]");
+        Debug::infoln("[T_Comm]");
 
-        receiveUARTData();
-
-        // Check if any complete packets have been received
-        while (xQueueReceive(uartPacketQueue, &packet, 0) == pdTRUE) {
-            processReceivedPacket(packet.data, packet.length);
+        #ifdef TIMING_MODE
+            uint32_t startMicros = micros();
+        #endif
+        
+        UART_COMM::receiveUARTData();
+    
+        while (xQueueReceive(UART_COMM::uartPacketQueue, &packet, 0) == pdTRUE) {
+            UART_COMM::processReceivedPacket(packet.data, packet.length);
         }
+        
+        #ifdef TIMING_MODE
+            uint32_t duration = micros() - startMicros;
+            commTiming.update(duration);
+        
+            if (commTiming.runCount >= TIMING_SAMPLE_COUNT) {
+                commTiming.printTimingStats("Comm");
+                commTiming.reset();
+            }
+        #endif
 
         vTaskDelayUntil(&lastWakeTime, COMM_TASK.period);  // Keeps execution periodic
     }
@@ -37,8 +57,8 @@ static void TaskCommunication(void *pvParameters) {
 
 // Initialization function to create task and queue
 void createTaskCommunication() {
-    uartPacketQueue = xQueueCreate(QUEUE_SIZE, sizeof(UARTPacket));
-    if (uartPacketQueue == NULL) {
+    UART_COMM::uartPacketQueue = xQueueCreate(QUEUE_SIZE, sizeof(UART_COMM::UARTPacket));
+    if (UART_COMM::uartPacketQueue == NULL) {
         Debug::errorln("[Comm] Failed to create serial queue");
         while (true);  // Halt system
     }

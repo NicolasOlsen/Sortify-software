@@ -6,22 +6,22 @@
 #include "config/servo_config.h"
 #include "config/communication_config.h"
 #include "control/servo_control.h"
-#include "comms/UART_communication.h"
+#include "comms/uart_receive.h"
 #include "shared/shared_objects.h"
 
-#include "utils/debug.h"
+#include "utils/debug_utils.h"
 
-constexpr bool LOCAL_DEBUG = true;
+using namespace COMM_CODE;
 
 void InitSystem() {
     Shared::systemState.Set(StatusCode::INITIALIZING);
     Debug::init(BAUDRATE_COMM);
-    Debug::infoln("Initializing", LOCAL_DEBUG);
+    Debug::infoln("Initializing");
 
-    UART_init(BAUDRATE_COMM);
+    UART_COMM::UART_init(BAUDRATE_COMM);
 
     if(!initServoLibraries()) {
-        Debug::errorln("Couldnt initiate", LOCAL_DEBUG);
+        Debug::errorln("Couldnt initiate");
         Shared::systemState.Set(StatusCode::FAULT);
     }
 
@@ -41,15 +41,12 @@ void InitSystem() {
         Shared::servoManager.getDXLAmount());
 
 
-    Shared::goalPositions.Set(DEFAULT_SERVO_POSITIONS, TOTAL_SERVO_COUNT, false);
-    
-    // Clear all update flags after initializing to prevent unintended movement
-    Shared::goalPositions.SetAllFlags(false);
+    Shared::goalPositions.Set(DEFAULT_SERVO_POSITIONS, TOTAL_SERVO_COUNT, 0, false);
 
     if (Shared::systemState.Get() == StatusCode::FAULT) return;  // Return and the system is in fault mode
 
     Shared::servoManager.setGoalPositions(DEFAULT_SERVO_POSITIONS, TOTAL_SERVO_COUNT);
 
     Shared::systemState.Set(StatusCode::IDLE);    // System is initialized and idle
-    Debug::infoln("System initialized successfully", LOCAL_DEBUG);
+    Debug::infoln("System initialized successfully");
 }

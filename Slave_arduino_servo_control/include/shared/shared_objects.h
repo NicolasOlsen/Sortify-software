@@ -7,8 +7,6 @@
 #include "comms/communication_code.h"
 #include "shared_variable.h"
 
-using namespace Com_code;
-
 namespace Shared
 {
 
@@ -20,7 +18,7 @@ namespace Shared
 
     extern ServoManager<DXL_SERVO_COUNT, ANALOG_SERVO_COUNT> servoManager;
 
-    extern SharedVariable<Com_code::StatusCode> systemState;
+    extern SharedVariable<COMM_CODE::StatusCode> systemState;
     
 } // namespace Shared
 

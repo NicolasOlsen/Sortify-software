@@ -5,9 +5,7 @@
 #include "config/task_config.h"
 #include "shared/shared_objects.h"
 
-#include "utils/Debug.h"
-
-constexpr bool LOCAL_DEBUG = true;
+#include "utils/debug_utils.h"
 
 static void TaskServoSetter(void *pvParameters) {
 	TickType_t lastWakeTime = xTaskGetTickCount();
@@ -16,14 +14,14 @@ static void TaskServoSetter(void *pvParameters) {
 
 	float tempGoalPositions[manager.getTotalAmount()];
 
-	Debug::infoln("[T_Setter] started", LOCAL_DEBUG);
+	Debug::infoln("[T_Setter] started");
 	
 	auto timer = millis();
 
 	for (;;) {
 		timer = millis();
 
-		Debug::infoln("[T_Setter]", LOCAL_DEBUG);
+		Debug::infoln("[T_Setter]");
 
 		// Applies goal positions to servos only if their update flag is set.
 		// This avoids redundant communication with unchanged servos.

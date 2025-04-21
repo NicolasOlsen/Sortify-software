@@ -1,12 +1,24 @@
 #ifndef PROJECT_CONFIG_H
 #define PROJECT_CONFIG_H
 
-// === Debug Settings ===
-// Global toggles for debugging output
-constexpr bool DEBUG_MODE     = true;   // Enable or disable all debug output
-constexpr bool USE_COLOR      = false;   // Use ANSI color codes in logs
-constexpr bool USE_TIMESTAMPS = true;  // Prepend logs with milliseconds since boot
+// === Modes (define ONE) ===
+// #define DEBUG
+#define TIMING_MODE
 
+#if defined(DEBUG) && defined(TIMING_MODE)
+    #error "DEBUG and TIMING_MODE cannot be enabled at the same time"
+#endif
+
+// === Optional features ===
+#define USE_COLOR true
+#define USE_TIMESTAMPS true
+
+// === Logging settings ===
+#define DEBUG_LEVEL LOG_INFO
 #define DEBUG_SERIAL Serial
+
+// === Timing settings ===
+#define TIMING_SERIAL Serial
+#define TIMING_SAMPLE_COUNT 1000
 
 #endif // PROJECT_CONFIG_H

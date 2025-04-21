@@ -1,28 +1,24 @@
 #include <stdint.h>
 #include <CRC16.h>
 
-#include "comms/communication_helper.h"
-
+#include "comms/packet_utils.h"
+#include "comms/uart_send.h"
 #include "config/communication_config.h"
 #include "shared/shared_objects.h"
 
-#include "utils/Debug.h"
+#include "utils/debug_utils.h"
 
-namespace Com_helper {
-
-constexpr bool LOCAL_DEBUG = true;
+using namespace COMM_CODE;
 
 CRC16 crc16;
 
-
-bool CheckFault() { return Shared::systemState.Get() == StatusCode::FAULT; }
-
+namespace PACKET_UTILS {
 
 // Appends a CRC-16 checksum to the last two bytes of the packet
 void makePacketCRC(uint8_t* packet, uint8_t packetSize) {
     // Basic null and size validation
     if (packet == nullptr || packetSize < MIN_PACKET_SIZE) {
-        Debug::errorln("Invalid packet or length in makePacketCRC!", LOCAL_DEBUG);
+        Debug::errorln("Invalid packet or length in makePacketCRC!");
         return;
     }
 
@@ -35,14 +31,14 @@ void makePacketCRC(uint8_t* packet, uint8_t packetSize) {
     // Debug output of generated CRC
     Debug::infoln("Generated CRC Bytes: " + 
         String(packet[packetSize - 2], HEX) + " " + 
-        String(packet[packetSize - 1], HEX), LOCAL_DEBUG);
+        String(packet[packetSize - 1], HEX));
 }
 
 
 // Validates the CRC-16 checksum of a received packet
 bool validatePacketCRC(const uint8_t* packet, uint8_t packetSize) {
     if (packet == nullptr || packetSize < MIN_PACKET_SIZE) {
-        Debug::errorln("Invalid packet or length in validatePacketCRC!", LOCAL_DEBUG);
+        Debug::errorln("Invalid packet or length in validatePacketCRC!");
         return false;
     }
 
@@ -58,7 +54,7 @@ bool validatePacketCRC(const uint8_t* packet, uint8_t packetSize) {
         String((computedCRC >> 8) & 0xFF, HEX) + 
         " | Received CRC Bytes: " + 
         String(receivedCRC & 0xFF, HEX) + " " + 
-        String((receivedCRC >> 8) & 0xFF, HEX), LOCAL_DEBUG);
+        String((receivedCRC >> 8) & 0xFF, HEX));
 
     return computedCRC == receivedCRC;
 }
@@ -71,6 +67,17 @@ uint16_t calculateCRC16(const uint8_t* packet, uint8_t packetSize) {
     crc16.reset();
     crc16.add(&packet[START_BYTES_SIZE], packetSize - (START_BYTES_SIZE + 2));
     return crc16.calc();
+}
+
+// Checks if the packetsize is smaller than the expceted packetsize
+bool packetExpectedSize(uint8_t packetSize, uint8_t expectedSize) {
+    if (packetSize < expectedSize) {
+        Debug::errorln("Packet is less than expected size, expected " + 
+            String(expectedSize) + " got " + String(packetSize));
+        UART_COMM::sendNACK(ComErrorCode::INVALID_PAYLOAD_SIZE);
+        return false;
+    }
+    return true;
 }
 
 }
