@@ -33,17 +33,28 @@ bool AnalogServo::setToPosition(float position) {
     uint16_t pwmVal = degreesToPwm(clamped);
 
     if (pwmDriver.setPWM(_channel, 0, pwmVal) == 0) {
-        Debug::infoln("AnalogServo[" + String(_channel) + "]: Set channel to " + String(clamped) + "° (PWM " + String(pwmVal) + ")");
+        #ifdef DEBUG
+            Debug::infoln("AnalogServo[" + String(_channel) + 
+                        "]: Set channel to " + String(clamped) + "° (PWM " + String(pwmVal) + ")");
+        #endif
+
         return true;
     }
-    Debug::errorln("AnalogServo[" + String(_channel) + "]: Failed to set position to " + String(position));
+    #ifdef DEBUG
+        Debug::errorln("AnalogServo[" + String(_channel) + 
+                    "]: Failed to set position to " + String(position));
+    #endif
+    
     return false;
 }
 
 bool AnalogServo::trySetToPosition(float position) {
     if (!checkPositionInAllowedRange(position)) {
+        #ifdef DEBUG
         Debug::warnln("AnalogServo: Refused to set channel " + String(_channel) +
-                      " to out-of-range position " + String(position));
+                    " to out-of-range position " + String(position));
+        #endif
+
         return false;
     }
 

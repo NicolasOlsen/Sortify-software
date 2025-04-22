@@ -79,9 +79,11 @@ void receiveUARTData() {
                 if (expectedLength > sizeof(localBuffer) ||
                     expectedLength < MIN_PACKET_SIZE - START_BYTES_SIZE) {
                     
-                    Debug::printHex(localBuffer, localIndex);
-                    Debug::print("\n");
-                    Debug::warnln("Length is either too long or too short");
+                    #ifdef DEBUG
+                        Debug::printHex(localBuffer, localIndex);
+                        Debug::print("\n");
+                        Debug::warnln("Length is either too long or too short");
+                    #endif
 
                     sendNACK(ComErrorCode::BUFFER_OVERFLOW);
                     resetState();
@@ -124,9 +126,11 @@ void receiveUARTData() {
 
                 // Defensive: if somehow too much data was read
                 else if (localIndex > expectedLength) {
-                    Debug::printHex(localBuffer, localIndex);
-                    Debug::print("\n");
-                    Debug::warnln("Buffer overflow (too much data)");
+                    #ifdef DEBUG
+                        Debug::printHex(localBuffer, localIndex);
+                        Debug::print("\n");
+                        Debug::warnln("Buffer overflow (too much data)");
+                    #endif
 
                     sendNACK(ComErrorCode::BUFFER_OVERFLOW);
                     resetState();

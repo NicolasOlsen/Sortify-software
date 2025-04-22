@@ -53,10 +53,11 @@ void sendPacket(MainCommand command, const uint8_t* payload, uint8_t payloadLeng
     // Append CRC
     PACKET_UTILS::makePacketCRC(packet, packetSize);
 
-    // Debug
-    Debug::info("Sent: ");
-    Debug::printHex(packet, packetSize);
-    Debug::print("\n");
+    #ifdef DEBUG
+        Debug::info("Sent: ");
+        Debug::printHex(packet, packetSize);
+        Debug::print("\n");
+    #endif
 
     // Store for potential retransmission
     if (command != MainCommand::NACK) {

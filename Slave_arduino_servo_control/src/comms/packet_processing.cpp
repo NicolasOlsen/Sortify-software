@@ -22,9 +22,11 @@ namespace {
 void processReceivedPacket(const uint8_t* packet, uint8_t packetSize) {
     if(!PACKET_UTILS::packetExpectedSize(packetSize, MIN_PACKET_SIZE)) return;    // If packet isnt the minimum size
 
-    Debug::info("Processing packet: ");
-    Debug::printHex(packet, packetSize);
-    Debug::print("\n");
+    #ifdef DEBUG
+        Debug::info("Processing packet: ");
+        Debug::printHex(packet, packetSize);
+        Debug::print("\n");
+    #endif
 
     MainCommand command = static_cast<MainCommand>(packet[COMMAND_INDEX]);
 

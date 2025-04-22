@@ -28,10 +28,12 @@ void makePacketCRC(uint8_t* packet, uint8_t packetSize) {
     packet[packetSize - 2] = crc & 0xFF;
     packet[packetSize - 1] = (crc >> 8) & 0xFF;
 
-    // Debug output of generated CRC
-    Debug::infoln("Generated CRC Bytes: " + 
-        String(packet[packetSize - 2], HEX) + " " + 
-        String(packet[packetSize - 1], HEX));
+    #ifdef DEBUG
+        // Debug output of generated CRC
+        Debug::infoln("Generated CRC Bytes: " + 
+            String(packet[packetSize - 2], HEX) + " " + 
+            String(packet[packetSize - 1], HEX));
+    #endif
 }
 
 
@@ -49,12 +51,14 @@ bool validatePacketCRC(const uint8_t* packet, uint8_t packetSize) {
     // Recompute CRC over the same region used in makePacketCRC()
     uint16_t computedCRC = calculateCRC16(packet, packetSize);
 
-    Debug::infoln("Computed CRC Bytes: " + 
-        String(computedCRC & 0xFF, HEX) + " " + 
-        String((computedCRC >> 8) & 0xFF, HEX) + 
-        " | Received CRC Bytes: " + 
-        String(receivedCRC & 0xFF, HEX) + " " + 
-        String((receivedCRC >> 8) & 0xFF, HEX));
+    #ifdef DEBUG
+        Debug::infoln("Computed CRC Bytes: " + 
+            String(computedCRC & 0xFF, HEX) + " " + 
+            String((computedCRC >> 8) & 0xFF, HEX) + 
+            " | Received CRC Bytes: " + 
+            String(receivedCRC & 0xFF, HEX) + " " + 
+            String((receivedCRC >> 8) & 0xFF, HEX));
+    #endif
 
     return computedCRC == receivedCRC;
 }
@@ -63,18 +67,19 @@ bool validatePacketCRC(const uint8_t* packet, uint8_t packetSize) {
 // Calculates CRC-16 over the packet excluding START_BYTES and CRC field itself
 uint16_t calculateCRC16(const uint8_t* packet, uint8_t packetSize) {
     // Compute CRC starting from LENGTH field up to the byte before the CRC
-    // i.e., skip START_BYTES and exclude the last 2 CRC bytes
     crc16.reset();
-    crc16.add(&packet[START_BYTES_SIZE], packetSize - (START_BYTES_SIZE + 2));
+    crc16.add(&packet[START_BYTES_SIZE], packetSize - (START_BYTES_SIZE + 2));  // skip START_BYTES and exclude the last 2 CRC bytes
     return crc16.calc();
 }
 
 // Checks if the packetsize is smaller than the expceted packetsize
 bool packetExpectedSize(uint8_t packetSize, uint8_t expectedSize) {
     if (packetSize < expectedSize) {
-        Debug::errorln("Packet is less than expected size, expected " + 
-            String(expectedSize) + " got " + String(packetSize));
-        UART_COMM::sendNACK(ComErrorCode::INVALID_PAYLOAD_SIZE);
+        #ifdef DEBUG
+            Debug::errorln("Packet is less than expected size, expected " + 
+                String(expectedSize) + " got " + String(packetSize));
+            UART_COMM::sendNACK(ComErrorCode::INVALID_PAYLOAD_SIZE);
+        #endif
         return false;
     }
     return true;
