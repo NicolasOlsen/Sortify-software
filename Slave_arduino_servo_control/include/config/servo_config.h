@@ -25,7 +25,7 @@ inline const DxlServo DXL_SERVOS_CONFIG[] = {
 };
 
 inline const AnalogServo ANALOG_SERVOS_CONFIG[] = {
-    AnalogServo(0, 130, 550, 180, 0, 130)   // Gripper
+    AnalogServo(0, 110, 500, 180, 0, 130)   // Gripper
 };
 
 // Servo counts derived from array
