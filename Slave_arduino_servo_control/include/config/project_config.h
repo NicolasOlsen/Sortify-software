@@ -2,8 +2,8 @@
 #define PROJECT_CONFIG_H
 
 // === Modes (define ONE) ===
-// #define DEBUG
-#define TIMING_MODE
+#define DEBUG
+// #define TIMING_MODE
 
 #if defined(DEBUG) && defined(TIMING_MODE)
     #error "DEBUG and TIMING_MODE cannot be enabled at the same time"
