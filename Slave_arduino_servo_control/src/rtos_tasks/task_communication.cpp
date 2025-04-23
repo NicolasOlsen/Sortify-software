@@ -28,7 +28,7 @@ static void TaskCommunication(void *pvParameters) {
     Debug::infoln("[T_Comm] started");
 
     for (;;) {
-        Debug::infoln("[T_Comm]");
+        // Debug::infoln("[T_Comm]");
 
         #ifdef TIMING_MODE
             uint32_t startMicros = micros();

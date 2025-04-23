@@ -22,12 +22,12 @@ void InitSystem() {
 
     if(!initServoLibraries()) {
         Debug::errorln("Couldnt initiate");
-        Shared::systemState.Set(StatusCode::FAULT);
+        // Shared::systemState.Set(StatusCode::FAULT);
     }
 
     if(!Shared::servoManager.initAll()) {
         Debug::errorln("Some or all of the dxl servos couldnt initiate");
-        Shared::systemState.Set(StatusCode::FAULT);
+        // Shared::systemState.Set(StatusCode::FAULT);
     }
 
     // Retrieve and store initialization error codes after initAll()
