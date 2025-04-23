@@ -33,6 +33,7 @@ _persistent_tracks = {
     "Blue Ball": []
 }
 
+# detection.py / def detect_colors
 def detect_colors(
     frame_bgr: np.ndarray,
     r1_h_min: int, r1_h_max: int,
@@ -55,6 +56,12 @@ def detect_colors(
     if k % 2 == 0:
         k += 1
     kernel = np.ones((k, k), np.uint8)
+
+    # ---- MINIMAL MORPH ITERATIONS FOR SPEED ---- #
+    use_fast_morph = True
+    if use_fast_morph:
+        open_iter = 1
+        close_iter = 1
     mask_red = cv2.morphologyEx(mask_red, cv2.MORPH_OPEN, kernel, iterations=open_iter)
     mask_red = cv2.morphologyEx(mask_red, cv2.MORPH_CLOSE, kernel, iterations=close_iter)
     mask_blue = cv2.morphologyEx(mask_blue, cv2.MORPH_OPEN, kernel, iterations=open_iter)

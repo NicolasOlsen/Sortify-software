@@ -138,45 +138,40 @@ class PerceptionController:
                 
                 
                 
+    # perception_controller.py / class PerceptionController / def _build_pipeline(self)
     def _build_pipeline(self) -> dai.Pipeline:
         pipeline = dai.Pipeline()
         cam_rgb = pipeline.createColorCamera()
-        cam_rgb.setPreviewSize(1280, 720)
-        cam_rgb.setVideoSize(1280, 720)
-        cam_rgb.setStillSize(1920, 1080)
+        # ---- REDUCE RESOLUTION TO 640x360 FOR SPEED ---- #
+        cam_rgb.setPreviewSize(640, 360)
+        cam_rgb.setVideoSize(640, 360)
+        cam_rgb.setStillSize(640, 360)
         cam_rgb.setInterleaved(False)
         cam_rgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
-
         ctrl_in = pipeline.createXLinkIn()
         ctrl_in.setStreamName("control")
         ctrl_in.out.link(cam_rgb.inputControl)
-
         xout_rgb = pipeline.createXLinkOut()
         xout_rgb.setStreamName("video")
         cam_rgb.video.link(xout_rgb.input)
-
         mono_left = pipeline.createMonoCamera()
         mono_right = pipeline.createMonoCamera()
         mono_left.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
         mono_right.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
         mono_left.setBoardSocket(dai.CameraBoardSocket.LEFT)
         mono_right.setBoardSocket(dai.CameraBoardSocket.RIGHT)
-
         stereo = pipeline.createStereoDepth()
         stereo.initialConfig.setConfidenceThreshold(200)
         stereo.initialConfig.setMedianFilter(dai.MedianFilter.KERNEL_5x5)
         stereo.setLeftRightCheck(True)
         stereo.setSubpixel(True)
         stereo.setDepthAlign(dai.CameraBoardSocket.RGB)
-        stereo.setOutputSize(1280, 720)
-
+        stereo.setOutputSize(640, 360)
         mono_left.out.link(stereo.left)
         mono_right.out.link(stereo.right)
-
         xout_depth = pipeline.createXLinkOut()
         xout_depth.setStreamName("depth")
         stereo.depth.link(xout_depth.input)
-
         return pipeline
     
     
@@ -184,17 +179,15 @@ class PerceptionController:
     
     
 
+    # perception_controller.py / class PerceptionController / def run_camera_loop(self)
     def run_camera_loop(self) -> None:
         frame_count = 0
         fps = 0.0
         last_time = time.time()
-
         while True:
             p = self._read_slider_params()
             self.ball_smoother.alpha = p['alpha']
-
             self._set_focus(int(p["Focus"]))
-
             new_vals = {
                 "Contrast": p.get("Contrast", 3),
                 "Saturation": p.get("Saturation", 3),
@@ -216,14 +209,17 @@ class PerceptionController:
             in_depth = self.q_depth.get()
             if not in_video or not in_depth:
                 continue
-
             frame = cv2.flip(in_video.getCvFrame(), 0)
             depth = cv2.flip(in_depth.getFrame(), 0)
 
-            if not p.get("Oak ISP Mode", 0):
+            # ---- 1. FAST CLAHE/BLUR BYPASS ---- #
+            from config import USE_HARDWARE_PREPROCESSING  # Re-import in class scope
+            if not USE_HARDWARE_PREPROCESSING:
+                from preprocessing import apply_clahe, apply_gaussian_blur
                 frame = apply_clahe(frame)
                 frame = apply_gaussian_blur(frame)
 
+            # ---- 2. DETECTION (unchanged) ---- #
             mask_red, mask_blue = detect_colors(
                 frame,
                 p['r1_h_min'], p['r1_h_max'],
@@ -235,7 +231,6 @@ class PerceptionController:
                 p['b_v_min'], p['b_v_max'],
                 p['kernel_size'], p['open_iter'], p['close_iter']
             )
-
             red_new = detect_and_label_circles(
                 mask_red, "Red Ball", frame,
                 p['dp'], p['minDist'],
@@ -250,33 +245,22 @@ class PerceptionController:
                 p['minRadius'], p['maxRadius'],
                 p['alpha']
             )
-
-            # ==== THIS IS THE ONLY CORRECT PLACE TO CALL SMOOTHER ====
             red_tracked = self.ball_smoother.smooth("Red Ball", red_new)
             blue_tracked = self.ball_smoother.smooth("Blue Ball", blue_new)
 
-
             red_results = evaluate_ball("Red Ball", mask_red, frame,
-                                    self._fx, self._fy,
-                                    self._cx0, self._cy0, depth,
-                                    red_tracked)
+                self._fx, self._fy, self._cx0, self._cy0, depth, red_tracked)
             blue_results = evaluate_ball("Blue Ball", mask_blue, frame,
-                                        self._fx, self._fy,
-                                        self._cx0, self._cy0, depth,
-                                        blue_tracked)
-
-            
-                # ...snip (existing pipeline, detection, smoothing)...
-
-            # After tracking and result eval:
+                self._fx, self._fy, self._cx0, self._cy0, depth, blue_tracked)
             self._publish_results("red", red_results)
             self._publish_results("blue", blue_results)
 
-            # Visualization additions:
-            # Draw glowing balls and futuristic trails
-            draw_detected_balls_with_effects(frame, red_tracked, "Red Ball")
-            draw_detected_balls_with_effects(frame, blue_tracked, "Blue Ball")
-            draw_trajectories(frame, self.ball_smoother)
+            # ---- 3. SKIP ALL EXPENSIVE DRAWING ---- #
+            # Comment out heavy visualization for speed!
+            # draw_detected_balls_with_effects(frame, red_tracked, "Red Ball")
+            # draw_detected_balls_with_effects(frame, blue_tracked, "Blue Ball")
+            # draw_trajectories(frame, self.ball_smoother)
+            # ...skipping status/fps bar, overlays, putText, rectangle...
 
             frame_count += 1
             now = time.time()
@@ -284,123 +268,10 @@ class PerceptionController:
                 fps = frame_count / (now - last_time)
                 frame_count, last_time = 0, now
 
-            # Bar positions and dimensions from config.py
-            bar_top = STATUS_BAR_TOP_MARGIN
-            bar_height = STATUS_BAR_HEIGHT
-            bar_bottom = bar_top + bar_height
-            bar_left = STATUS_BAR_SIDE_MARGIN
-            bar_right = frame.shape[1] - STATUS_BAR_SIDE_MARGIN
-
-            # Create overlay for bar
-            overlay = frame.copy()
-            cv2.rectangle(
-                overlay,
-                (bar_left, bar_top),
-                (bar_right, bar_bottom),
-                STATUS_BAR_RECT_COLOR,
-                -1
-            )
-            cv2.addWeighted(
-                overlay,
-                STATUS_BAR_ALPHA,
-                frame,
-                1 - STATUS_BAR_ALPHA,
-                0,
-                frame
-            )
-
-            # Content: Red count | Blue count | FPS -- visually segmented and spaced
-            red_text = f"Red: {len(red_tracked)}"
-            blue_text = f"Blue: {len(blue_tracked)}"
-            fps_text = f"FPS: {fps:.2f}"
-
-            # Calculate dynamic horizontal positions
-            gap = 48  # Minimum gap in pixels between groups
-            y_text = bar_top + int(bar_height * 0.75)
-
-            # Left: Red
-            cv2.putText(
-                frame,
-                red_text,
-                (bar_left + STATUS_TEXT_X, y_text),
-                STATUS_FONT,
-                STATUS_FONT_SCALE,
-                STATUS_FONT_OUTLINE_COLOR,
-                STATUS_FONT_OUTLINE_THICKNESS,
-                cv2.LINE_AA
-            )
-            cv2.putText(
-                frame,
-                red_text,
-                (bar_left + STATUS_TEXT_X, y_text),
-                STATUS_FONT,
-                STATUS_FONT_SCALE,
-                STATUS_FONT_COLOR,
-                STATUS_FONT_THICKNESS,
-                cv2.LINE_AA
-            )
-
-            # Center: Blue
-            (text_width_red, _) = cv2.getTextSize(red_text, STATUS_FONT, STATUS_FONT_SCALE, STATUS_FONT_THICKNESS)[0]
-            (text_width_blue, _) = cv2.getTextSize(blue_text, STATUS_FONT, STATUS_FONT_SCALE, STATUS_FONT_THICKNESS)[0]
-            center_x = int((bar_left + bar_right) / 2 - text_width_blue / 2)
-            cv2.putText(
-                frame,
-                blue_text,
-                (center_x, y_text),
-                STATUS_FONT,
-                STATUS_FONT_SCALE,
-                STATUS_FONT_OUTLINE_COLOR,
-                STATUS_FONT_OUTLINE_THICKNESS,
-                cv2.LINE_AA
-            )
-            cv2.putText(
-                frame,
-                blue_text,
-                (center_x, y_text),
-                STATUS_FONT,
-                STATUS_FONT_SCALE,
-                STATUS_FONT_COLOR,
-                STATUS_FONT_THICKNESS,
-                cv2.LINE_AA
-            )
-
-            # Right: FPS
-            (text_width_fps, _) = cv2.getTextSize(fps_text, STATUS_FONT, STATUS_FONT_SCALE, STATUS_FONT_THICKNESS)[0]
-            right_x = bar_right - STATUS_TEXT_X - text_width_fps
-            cv2.putText(
-                frame,
-                fps_text,
-                (right_x, y_text),
-                STATUS_FONT,
-                STATUS_FONT_SCALE,
-                STATUS_FONT_OUTLINE_COLOR,
-                STATUS_FONT_OUTLINE_THICKNESS,
-                cv2.LINE_AA
-            )
-            cv2.putText(
-                frame,
-                fps_text,
-                (right_x, y_text),
-                STATUS_FONT,
-                STATUS_FONT_SCALE,
-                STATUS_FONT_COLOR,
-                STATUS_FONT_THICKNESS,
-                cv2.LINE_AA
-            )
-
-            # --- END replacement ---
-
-            # THIS DRAWS THE TRAILS
-            draw_trajectories(frame, self.ball_smoother)
-
+            # ---- 4. Just Show Output Frame (optional) ---- #
             cv2.imshow("Color Frame", frame)
-            # cv2.imshow("Red Mask", mask_red)
-            # cv2.imshow("Blue Mask", mask_blue)
-
             key = cv2.waitKey(1) & 0xFF
             self._handle_key_press(key, frame, p)
-
             if key == ord('q'):
                 break
 
@@ -408,7 +279,7 @@ class PerceptionController:
         self.csv_file.close()
         if USE_ROS and self.ros_node is not None:
             self.ros_node.destroy_node()
-            
+                
             
             
             
