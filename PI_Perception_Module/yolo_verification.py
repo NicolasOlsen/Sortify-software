@@ -1,6 +1,10 @@
+# yolo_verification.py
+
 import cv2
 import subprocess
 import threading
+from config import YOLO_CFG, YOLO_WEIGHTS, YOLO_DATA
+
 try:
     from rclpy.logging import get_logger
     log = get_logger("module_name")
@@ -12,22 +16,17 @@ except ImportError:
         def error(self, msg): print("[ERROR]", msg)
     log = DummyLogger()
 
-
-# Label expectations
 YOLO_LABELS = {
     "0": "red",
     "1": "blue"
 }
-
-# Shared state from detection
-#from detection import prev_circles, verified_flags, LABEL_MAP
-
-# YOLO tracking state
 yolo_detections = []
 yolo_in_progress = False
 yolo_thread = None
 
-def parse_yolo_output(output_str):
+# yolo_verification.py
+
+def parse_yolo_output(output_str, spam_mode=False):
     detections = []
     for line in output_str.splitlines():
         if "%" in line and "left_x" in line:
@@ -50,35 +49,24 @@ def parse_yolo_output(output_str):
                     "cx": (left + right) // 2,
                     "cy": (top + bottom) // 2
                 })
+                if spam_mode:
+                    print(f"[YOLO][SPAM] Detected: label={label}, conf={conf}%, box=({left},{top},{right},{bottom})")
             except Exception as e:
-                log.warn(f"Failed to parse YOLO line: {line} -> {e}")
+                print(f"[YOLO][SPAM][ERROR] Could not parse line: '{line}' Exception: {e}")
     return detections
 
-def is_verified_by_yolo(cx, cy, det_list, color_name, margin=15):
-    expected = LABEL_MAP[color_name].lower()
-    for det in det_list:
-        if det["label"].lower() == expected:
-            if (det["left"] - margin <= cx <= det["right"] + margin) and \
-               (det["top"] - margin <= cy <= det["bottom"] + margin):
-                return True
-    return False
-
-def yolo_inference(frame):
+def yolo_inference(frame, pi_mode=False, spam_mode=False):
     global yolo_detections, yolo_in_progress
-
+    if pi_mode:
+        yolo_in_progress = False
+        return
     _, img_encoded = cv2.imencode('.jpg', frame)
     img_bytes = img_encoded.tobytes()
-
     cmd = [
-        "/absolute/path/to/darknet",  # CHANGE THIS
-        "detector", "test",
-        "data/obj.data",
-        "cfg/yolov4-tiny-obj.cfg",
-        "backup/yolov4-tiny_last.weights",
-        "-",
-        "-dont_show", "-ext_output", "-thresh", "0.01"
-    ]
-
+    "/Users/azi/Desktop/Sortify/darknet/darknet", "detector", "test",
+    YOLO_DATA, YOLO_CFG, YOLO_WEIGHTS,
+    "-", "-dont_show", "-ext_output", "-thresh", "0.01"
+]
     try:
         result = subprocess.run(
             cmd,
@@ -88,26 +76,31 @@ def yolo_inference(frame):
             timeout=10
         )
         stdout_text = result.stdout.decode('utf-8', errors='replace')
+        if spam_mode:
+            print("[YOLO][SPAM] YOLO subprocess completed.")
+            print("[YOLO][SPAM] Raw output:")
+            print(stdout_text)
     except Exception as e:
-        log.error(f"YOLO subprocess failed: {e}")
+        print(f"[YOLO][SPAM][FAIL] YOLO subprocess failed: {e}")
         yolo_in_progress = False
         return
-
-    detections = parse_yolo_output(stdout_text)
+    detections = parse_yolo_output(stdout_text, spam_mode)
+    if spam_mode:
+        if detections:
+            print(f"[YOLO][SPAM] Parsed {len(detections)} detections.")
+        else:
+            print("[YOLO][SPAM] No objects detected by YOLO.")
     yolo_detections.clear()
     yolo_detections.extend(detections)
-
-    for color_name in ["Red Ball", "Blue Ball"]:
-        for i, (cx, cy, rr) in enumerate(prev_circles[color_name]):
-            match = is_verified_by_yolo(cx, cy, yolo_detections, color_name, margin=30)
-            if match:
-                verified_flags[color_name][i] = True
-
     yolo_in_progress = False
 
-def trigger_yolo(frame):
+def trigger_yolo(frame, pi_mode=False, spam_mode=False):
     global yolo_in_progress, yolo_thread
+    if pi_mode:
+        return
     if not yolo_in_progress:
         yolo_in_progress = True
-        yolo_thread = threading.Thread(target=yolo_inference, args=(frame,))
+        yolo_thread = threading.Thread(target=yolo_inference, args=(frame, pi_mode, spam_mode))
         yolo_thread.start()
+        if spam_mode:
+            print("[YOLO][SPAM] YOLO detection thread started.")

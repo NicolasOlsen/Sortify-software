@@ -1,7 +1,8 @@
+# position_estimation.py
+
 import cv2
 import numpy as np
 from utils import BallSmoother
-
 from config import CIRCLE_DRAW_SETTINGS
 
 try:
@@ -31,22 +32,24 @@ def compute_circle_mask_score(mask, cx, cy, r):
     return float(np.sum(inside > 0)) / denom if denom > 0 else 0.0
 
 def evaluate_ball(
-    name, mask, frame, fx, fy, cx0, cy0, depth_frame, circles
+    name, mask, frame, fx, fy, cx0, cy0, depth_frame, balls, pi_mode=False
 ):
     """
     Args:
         name: e.g. "Red Ball" or "Blue Ball"
         mask: binary mask for the ball color
-        frame: BGR frame (annotated here)
+        frame: BGR frame (may be annotated)
         fx, fy, cx0, cy0: calibration params
         depth_frame: aligned depth image
-        circles: list of (cx, cy, r) from BallSmoother for this frame
+        balls: list of (cx, cy, r) from BallSmoother for this frame
+        pi_mode: if True, disables any overlay
     Returns:
         list of (score, cx, cy, r, x_mm, y_mm, z_mm)
     """
     results = []
     inner_color = CIRCLE_DRAW_SETTINGS["COLOR_RED_BALL"] if name == "Red Ball" else CIRCLE_DRAW_SETTINGS["COLOR_BLUE_BALL"]
-    for i, (cx, cy, r) in enumerate(circles):
+
+    for i, (cx, cy, r) in enumerate(balls):
         cxi = int(round(cx))
         cyi = int(round(cy))
         ri = int(round(r))
@@ -57,40 +60,46 @@ def evaluate_ball(
         x_mm, y_mm, z_mm = (0, 0, 0)
         if 0 < depth < 4000:
             x_mm, y_mm, z_mm = reproject_to_3d(cxi, cyi, depth, fx, fy, cx0, cy0)
-        if score > CIRCLE_DRAW_SETTINGS["SCORE_THRESH_CONFIRMED"]:
-            outer_color = CIRCLE_DRAW_SETTINGS["COLOR_CONFIRMED"]
-        elif score > CIRCLE_DRAW_SETTINGS["SCORE_THRESH_CANDIDATE"]:
-            outer_color = CIRCLE_DRAW_SETTINGS["COLOR_CANDIDATE"]
-        else:
-            outer_color = CIRCLE_DRAW_SETTINGS["COLOR_REJECTED"]
 
-        cv2.circle(
-            frame,
-            (cxi, cyi),
-            ri + CIRCLE_DRAW_SETTINGS["DRAW_THICKNESS_AUX"],
-            outer_color,
-            CIRCLE_DRAW_SETTINGS["DRAW_THICKNESS_AUX"]
-        )
-        cv2.circle(
-            frame,
-            (cxi, cyi),
-            ri,
-            inner_color,
-            CIRCLE_DRAW_SETTINGS["DRAW_THICKNESS_MAIN"]
-        )
-        text = (
-            f"Score={score:.2f} | X={int(x_mm)} Y={int(y_mm)} Z={int(z_mm)}"
-            if z_mm > 0 else f"Score={score:.2f}"
-        )
-        org = (cxi - ri - 100, cyi - ri - 20)
-        cv2.putText(
-            frame,
-            text,
-            org,
-            CIRCLE_DRAW_SETTINGS["FONT"],
-            CIRCLE_DRAW_SETTINGS["FONT_SCALE"],
-            (255, 255, 255),
-            CIRCLE_DRAW_SETTINGS["FONT_THICKNESS"]
-        )
         results.append((score, cxi, cyi, ri, x_mm, y_mm, z_mm))
+        
+        # Only overlay in normal (non-Pi) mode
+        if not pi_mode:
+            # Use "ball"/"sphere" terminology for overlays
+            if score > CIRCLE_DRAW_SETTINGS["SCORE_THRESH_CONFIRMED"]:
+                outer_color = CIRCLE_DRAW_SETTINGS["COLOR_CONFIRMED"]
+            elif score > CIRCLE_DRAW_SETTINGS["SCORE_THRESH_CANDIDATE"]:
+                outer_color = CIRCLE_DRAW_SETTINGS["COLOR_CANDIDATE"]
+            else:
+                outer_color = CIRCLE_DRAW_SETTINGS["COLOR_REJECTED"]
+            cv2.circle(
+                frame,
+                (cxi, cyi),
+                ri + CIRCLE_DRAW_SETTINGS["DRAW_THICKNESS_AUX"],
+                outer_color,
+                CIRCLE_DRAW_SETTINGS["DRAW_THICKNESS_AUX"]
+            )
+            cv2.circle(
+                frame,
+                (cxi, cyi),
+                ri,
+                inner_color,
+                CIRCLE_DRAW_SETTINGS["DRAW_THICKNESS_MAIN"]
+            )
+            # Label uses scientific language
+            if z_mm > 0:
+                text = f"Score={score:.2f} | Sphere X={int(x_mm)} Y={int(y_mm)} Z={int(z_mm)}"
+            else:
+                text = f"Score={score:.2f}"
+            org = (cxi - ri - 100, cyi - ri - 20)
+            cv2.putText(
+                frame,
+                text,
+                org,
+                CIRCLE_DRAW_SETTINGS["FONT"],
+                CIRCLE_DRAW_SETTINGS["FONT_SCALE"],
+                (255, 255, 255),
+                CIRCLE_DRAW_SETTINGS["FONT_THICKNESS"]
+            )
+
     return results

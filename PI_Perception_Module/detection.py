@@ -1,16 +1,17 @@
+# detection.py
+
 import cv2
 import numpy as np
 from scipy.spatial import distance
 from typing import List, Tuple
 from config import CIRCLE_PERSISTENCE_FRAMES, CIRCLE_MATCH_DIST
+from config import minDist
 from utils import BallSmoother
 from position_estimation import compute_circle_mask_score
-
 from config import (
     CIRCLE_PERSISTENCE_FRAMES, CIRCLE_MATCH_DIST,
-    CIRCLE_DRAW_SETTINGS        # <-- Add this
+    CIRCLE_DRAW_SETTINGS,
 )
-
 try:
     from rclpy.logging import get_logger
     log = get_logger("detection")
@@ -21,8 +22,8 @@ except ImportError:
         def warning(self, msg): print("[WARN]", msg)
     log = DummyLogger()
 
-prev_circles = {"Red Ball": [], "Blue Ball": []}
-smooth_circles = {"Red Ball": [], "Blue Ball": []}
+prev_balls = {"Red Ball": [], "Blue Ball": []}
+smooth_balls = {"Red Ball": [], "Blue Ball": []}
 verified_flags = {"Red Ball": [], "Blue Ball": []}
 LABEL_MAP = {
     "Red Ball": "red",
@@ -33,7 +34,7 @@ _persistent_tracks = {
     "Blue Ball": []
 }
 
-# detection.py / def detect_colors
+
 def detect_colors(
     frame_bgr: np.ndarray,
     r1_h_min: int, r1_h_max: int,
@@ -56,28 +57,22 @@ def detect_colors(
     if k % 2 == 0:
         k += 1
     kernel = np.ones((k, k), np.uint8)
-
-    # ---- MINIMAL MORPH ITERATIONS FOR SPEED ---- #
-    use_fast_morph = True
-    if use_fast_morph:
-        open_iter = 1
-        close_iter = 1
     mask_red = cv2.morphologyEx(mask_red, cv2.MORPH_OPEN, kernel, iterations=open_iter)
     mask_red = cv2.morphologyEx(mask_red, cv2.MORPH_CLOSE, kernel, iterations=close_iter)
     mask_blue = cv2.morphologyEx(mask_blue, cv2.MORPH_OPEN, kernel, iterations=open_iter)
     mask_blue = cv2.morphologyEx(mask_blue, cv2.MORPH_CLOSE, kernel, iterations=close_iter)
     return mask_red, mask_blue
 
-def non_max_suppression_circles(
-    circles: List[Tuple[int, int, int]], min_dist: int = 75
+def non_max_suppression_balls(
+    balls: List[Tuple[int, int, int]], min_dist = int(minDist)
 ) -> List[Tuple[int, int, int]]:
     filtered = []
-    for cx, cy, r in circles:
+    for cx, cy, r in balls:
         if all(np.hypot(cx - fx, cy - fy) >= min_dist for fx, fy, _ in filtered):
             filtered.append((cx, cy, r))
     return filtered
 
-def _persistent_circles(
+def _persistent_balls(
     color_name: str, detected: List[Tuple[int, int, int]]
 ) -> List[Tuple[int, int, int]]:
     tracks = _persistent_tracks[color_name]
@@ -89,7 +84,7 @@ def _persistent_circles(
         for t in tracks:
             tcx, tcy, tr, count = t
             if np.hypot(ncx - tcx, ncy - tcy) < CIRCLE_MATCH_DIST:
-                t[0], t[1], t[2], t[3] = ncx, ncy, nr, min(count+1, CIRCLE_PERSISTENCE_FRAMES+1)
+                t[0], t[1], t[2], t[3] = ncx, ncy, nr, min(count + 1, CIRCLE_PERSISTENCE_FRAMES + 1)
                 found = True
                 break
         if not found:
@@ -106,9 +101,16 @@ def detect_and_label_circles(
     param2: float,
     minRadius: int,
     maxRadius: int,
-    smoothing_alpha: float
+    smoothing_alpha: float,
+    pi_mode: bool = False,  # <-- new param
 ) -> List[Tuple[int, int, int]]:
-    global prev_circles, smooth_circles, verified_flags
+    if frame.ndim == 2 or (frame.ndim == 3 and frame.shape[2] == 1):
+        frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
+    """
+    Detects and labels spherical balls in the image.
+    When pi_mode is True, only the simplest circles are drawn, no text, no score overlays.
+    """
+    global prev_balls, smooth_balls, verified_flags
     dp_val = max(1, dp)
     blurred = cv2.GaussianBlur(mask, (9, 9), 2)
     minR = min(minRadius, maxRadius - 1)
@@ -127,10 +129,8 @@ def detect_and_label_circles(
     if circles is not None:
         c_ = np.round(circles[0]).astype(int)
         img_h, img_w = mask.shape[:2]
-        margin = CIRCLE_DRAW_SETTINGS["DRAW_MARGIN"]  # Amount inside edges you require
-
+        margin = CIRCLE_DRAW_SETTINGS["DRAW_MARGIN"]
         for (cx, cy, r) in c_:
-            # Only accept circle if entire circle fits in image (+ margin)
             if (margin <= cx - r < img_w - margin and
                 margin <= cx + r < img_w - margin and
                 margin <= cy - r < img_h - margin and
@@ -139,23 +139,24 @@ def detect_and_label_circles(
                     score = compute_circle_mask_score(mask, cx, cy, r)
                     if score > 0.65:
                         temp_list.append((cx, cy, r))
-                    else:
+                    elif not pi_mode:
                         cv2.circle(frame, (cx, cy), r, CIRCLE_DRAW_SETTINGS["COLOR_GRAY"], CIRCLE_DRAW_SETTINGS["DRAW_THICKNESS_MAIN"])
                         cv2.putText(frame, f"{score:.2f}", (cx, cy - 10),
-                                    CIRCLE_DRAW_SETTINGS["FONT"], CIRCLE_DRAW_SETTINGS["FONT_SCALE_SCORE"], CIRCLE_DRAW_SETTINGS["COLOR_GRAY"], 1)
-                        
+                            CIRCLE_DRAW_SETTINGS["FONT"], CIRCLE_DRAW_SETTINGS["FONT_SCALE_SCORE"],
+                            CIRCLE_DRAW_SETTINGS["COLOR_SCORE_AUX"], 1, cv2.LINE_AA
+                        )
     expected_r = (minRadius + maxRadius) // 2
     nms_dist = max(15, expected_r // 2)
-    new_list = non_max_suppression_circles(temp_list, min_dist=nms_dist)
-    last_smooth = smooth_circles[color_name]
+    new_list = non_max_suppression_balls(temp_list, min_dist=nms_dist)
+    last_smooth = smooth_balls[color_name]
     last_flags = verified_flags[color_name]
     smoothed = []
     new_flags = []
     used_indices = set()
     for idx, (lx, ly, lr) in enumerate(last_smooth):
         candidates = [(i, x, y, rr)
-                      for i, (x, y, rr) in enumerate(new_list)
-                      if i not in used_indices]
+            for i, (x, y, rr) in enumerate(new_list)
+            if i not in used_indices]
         if not candidates:
             continue
         i_best, nx, ny, nr = min(
@@ -172,13 +173,22 @@ def detect_and_label_circles(
         if i not in used_indices:
             smoothed.append((cx, cy, rr))
             new_flags.append(False)
-    smooth_circles[color_name] = smoothed
+    smooth_balls[color_name] = smoothed
     verified_flags[color_name] = new_flags
-    prev_circles[color_name] = smoothed
-    stable = _persistent_circles(color_name, smoothed)
+    prev_balls[color_name] = smoothed
+    stable = _persistent_balls(color_name, smoothed)
+    # Pi mode: ONLY draw a single simple circle for each confirmed detection, no scores!
+    if pi_mode:
+        for (cx, cy, r) in stable:
+            color = (0, 0, 255) if color_name == "Red Ball" else (255, 0, 0)
+            cv2.circle(frame, (int(cx), int(cy)), int(r), color, 2)
+        return stable
+    # --- Normal mode overlays below ---
     for (cx, cy, r) in stable:
         cv2.circle(frame, (int(cx), int(cy)), int(r), CIRCLE_DRAW_SETTINGS["COLOR_CONFIRMED"], CIRCLE_DRAW_SETTINGS["DRAW_THICKNESS_MAIN"])
         score = compute_circle_mask_score(mask, int(cx), int(cy), int(r))
         cv2.putText(frame, f"{score:.2f}", (int(cx), int(cy)-10),
-                    CIRCLE_DRAW_SETTINGS["FONT"], CIRCLE_DRAW_SETTINGS["FONT_SCALE_SCORE"], CIRCLE_DRAW_SETTINGS["COLOR_SCORE_AUX"], 1)
+            CIRCLE_DRAW_SETTINGS["FONT"], CIRCLE_DRAW_SETTINGS["FONT_SCALE_SCORE"],
+            CIRCLE_DRAW_SETTINGS["COLOR_SCORE_AUX"], 1, cv2.LINE_AA
+        )
     return stable
