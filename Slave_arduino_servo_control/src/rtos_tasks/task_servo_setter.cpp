@@ -5,7 +5,12 @@
 #include "config/task_config.h"
 #include "shared/shared_objects.h"
 
+#include "utils/task_timer.h"
 #include "utils/debug_utils.h"
+
+#ifdef TIMING_MODE
+    static TaskTimingStats commTiming;
+#endif
 
 static void TaskServoSetter(void *pvParameters) {
 	TickType_t lastWakeTime = xTaskGetTickCount();
@@ -13,30 +18,39 @@ static void TaskServoSetter(void *pvParameters) {
 	auto& manager = Shared::servoManager;
 
 	float tempGoalPositions[manager.getTotalAmount()];
+	float tempGoalVelocities[manager.getDXLAmount()];
 
 	Debug::infoln("[T_Setter] started");
-	
-	auto timer = millis();
 
 	for (;;) {
-		timer = millis();
-
 		Debug::infoln("[T_Setter]");
 
-		// Applies goal positions to servos only if their update flag is set.
-		// This avoids redundant communication with unchanged servos.
-		Shared::goalPositions.Get(tempGoalPositions, manager.getTotalAmount());
-		for (uint8_t id = 0; id < manager.getTotalAmount(); id++) {
-			if (Shared::goalPositions.GetFlag(id)) {
-				if (manager.setGoalPosition(id, tempGoalPositions[id])) {
-					Shared::goalPositions.SetFlag(id, false);
-				}
-			}
-		}    
+		#ifdef TIMING_MODE
+			uint32_t startMicros = micros();
+		#endif
 
-		Serial.println("Se Timer: " + String(millis() - timer));
+		// Bulk get values for faster performance
+		Shared::goalPositions.Get(tempGoalPositions);
+		Shared::goalVelocities.Get(tempGoalVelocities);
 
-		vTaskDelayUntil(&lastWakeTime, SET_TASK.period);
+		manager.setGoalPositions(tempGoalPositions);  
+		manager.setGoalVelocities(tempGoalVelocities);
+
+		#ifdef TIMING_MODE
+            uint32_t duration = micros() - startMicros;
+            commTiming.update(duration);
+        
+            if (commTiming.runCount >= TIMING_SAMPLE_COUNT) {
+                commTiming.printTimingStats("Setter");
+                commTiming.reset();
+
+                // Long delay to simulate less frequent task execution in TIMING_MODE
+                vTaskDelayUntil(&lastWakeTime, pdMS_TO_TICKS(TIMING_DELAY_TASKS));
+            }
+        #else
+            // Wait until the next period
+			vTaskDelayUntil(&lastWakeTime, SET_TASK.period);
+        #endif
 	}
 }
 

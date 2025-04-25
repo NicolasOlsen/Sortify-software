@@ -129,7 +129,7 @@ class MasterUART:
 		"""
 		self.ser = serial.Serial(port, baudrate=baudrate, timeout=timeout)
 		self.ser.setDTR(False)  # Prevent Arduino reset
-		time.sleep(2)  # Let Arduino boot
+		time.sleep(1)  # Let Arduino boot
 		self.ser.reset_input_buffer()
 		self.crc16 = CRC16()
 		self.START_BYTES = start_bytes

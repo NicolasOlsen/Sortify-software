@@ -10,7 +10,7 @@
 #endif
 
 // === Optional features ===
-#define USE_COLOR true
+#define USE_COLOR false
 #define USE_TIMESTAMPS true
 
 // === Logging settings ===
@@ -18,7 +18,9 @@
 #define DEBUG_SERIAL Serial
 
 // === Timing settings ===
-#define TIMING_SERIAL Serial
+#define TIMING_SERIAL Serial1
 #define TIMING_SAMPLE_COUNT 1000
+
+#define TIMING_DELAY_TASKS 100000
 
 #endif // PROJECT_CONFIG_H

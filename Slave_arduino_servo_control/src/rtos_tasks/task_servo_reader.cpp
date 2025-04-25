@@ -4,9 +4,14 @@
 #include "config/task_config.h"
 #include "shared/shared_objects.h"
 
+#include "utils/task_timer.h"
 #include "utils/debug_utils.h"
 
 using namespace COMM_CODE;
+
+#ifdef TIMING_MODE
+    static TaskTimingStats commTiming;
+#endif
 
 static void TaskServoReader(void *pvParameters) {
 	TickType_t lastWakeTime = xTaskGetTickCount();
@@ -15,12 +20,15 @@ static void TaskServoReader(void *pvParameters) {
 
 	auto& manager = Shared::servoManager;
 
-	float tempCurrentPositions[manager.getTotalAmount()];
-	DXLLibErrorCode_t tempErrors[manager.getDXLAmount()];
+	static float tempCurrentPositions[manager.getTotalAmount()];
+	static DXLLibErrorCode_t tempErrors[manager.getDXLAmount()];
 
 	for (;;) {
-		auto timer = millis();
 		Debug::infoln("[T_Reader]");
+
+		#ifdef TIMING_MODE
+			uint32_t startMicros = micros();
+		#endif
 
 		StatusCode tempStatus = Shared::systemState.Get();
 
@@ -31,20 +39,10 @@ static void TaskServoReader(void *pvParameters) {
 			// Ping DXL servos to keep them responsive and detect recovery,
 			// but avoid full reads to minimize task time in FAULT mode
 			manager.pingAll();
-
-			// Use last-known goals as fallback "current" for analog servos
-			Shared::goalPositions.Get(
-				&tempCurrentPositions[manager.getDXLAmount()],
-				manager.getAnalogAmount(),
-				manager.getDXLAmount()
-			);
-
-			// Update current positions with partial valid data
-			Shared::currentPositions.Set(tempCurrentPositions, manager.getTotalAmount());
 		}
 		else {
 			// Normal operation: fetch real positions and error codes
-			manager.getCurrentPositions(tempCurrentPositions, manager.getDXLAmount());
+			manager.getCurrentPositions(sliceFirst<float, manager.getDXLAmount()>(tempCurrentPositions));
 			manager.getErrors(tempErrors, manager.getDXLAmount());
 
 			// Add analog servo positions based on goal fallback
@@ -54,7 +52,23 @@ static void TaskServoReader(void *pvParameters) {
 				manager.getDXLAmount()
 			);
 
-			Shared::currentPositions.Set(tempCurrentPositions, manager.getTotalAmount());
+			// Check if all of the servos got read succesfully
+			bool allSuccess = true;
+			for (uint8_t id = 0; id < manager.getDXLAmount(); id++) {
+				if (tempErrors[id] != DXL_LIB_OK) {
+					allSuccess = false;
+					break;
+				}
+			}
+
+			// Only save the positions if succesfull, since the syncRead only returns data if all where succesful
+			if (allSuccess) {
+				Shared::currentPositions.Set(tempCurrentPositions, manager.getTotalAmount());
+			} else {
+                Debug::infoln("Some servos failed to respond, not updating positions.");
+            }
+
+			// Update the servo errors regardless of success
 			Shared::servoErrors.Set(tempErrors, manager.getDXLAmount());
 		}
 
@@ -63,9 +77,21 @@ static void TaskServoReader(void *pvParameters) {
 			? READ_TASK.period * 2
 			: READ_TASK.period;
 
-		Serial.println("Re Timer: " + String(millis() - timer));
+		#ifdef TIMING_MODE
+            uint32_t duration = micros() - startMicros;
+            commTiming.update(duration);
+        
+            if (commTiming.runCount >= TIMING_SAMPLE_COUNT) {
+                commTiming.printTimingStats("Reader");
+                commTiming.reset();
 
-		vTaskDelayUntil(&lastWakeTime, delayTicks);
+                // Long delay to simulate less frequent task execution in TIMING_MODE
+                vTaskDelayUntil(&lastWakeTime, pdMS_TO_TICKS(TIMING_DELAY_TASKS));
+            }
+        #else
+            // Wait until the next period
+			vTaskDelayUntil(&lastWakeTime, delayTicks);
+        #endif
 	}
 }
 

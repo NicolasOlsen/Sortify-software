@@ -14,8 +14,8 @@ public:
      * @brief Construct a new AnalogServo object
      * 
      * @param channel PWM channel (0–15) used by the PCA9685
-     * @param minPWM Minimum PWM pulse (e.g. ~130 for 0°)
-     * @param maxPWM Maximum PWM pulse (e.g. ~550 for 180°)
+     * @param minPWM Minimum PWM pulse
+     * @param maxPWM Maximum PWM pulse
      * @param maxDegree Physical max range of the servo (default 180°)
      * @param minAllowedDegree Optional minimum allowed position for this servo (default 0°)
      * @param maxAllowedDegree Optional maximum allowed position (default = maxDegree)
@@ -26,6 +26,14 @@ public:
                 float maxAllowedDegree = -1.0f);  // -1 means "use maxDegree"
 
     AnalogServo();
+
+    /**
+     * @brief Initializes the shared Adafruit PCA9685 PWM driver.
+     *        Must be called once in setup() before using any AnalogServo objects.
+     * 
+     * @return True if initialization was successful
+     */
+    static bool initAnalogServoDriver();
 
     /**
      * @brief Sets the servo to the given angle (clamps to allowed limits).
@@ -70,13 +78,5 @@ private:
 
     uint16_t degreesToPwm(float degrees) const;
 };
-
-/**
- * @brief Initializes the shared Adafruit PCA9685 PWM driver.
- *        Must be called once in setup() before using any AnalogServo objects.
- * 
- * @return True if initialization was successful
- */
-bool initAnalogServoDriver();
 
 #endif // ANALOG_SERVO_CLASS_H

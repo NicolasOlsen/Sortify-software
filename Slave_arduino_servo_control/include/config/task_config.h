@@ -27,19 +27,19 @@ constexpr TaskConfig COMM_TASK = { pdMS_TO_TICKS(100), 3, 512 };
  * @brief Servo reader task
  * Medium-high priority, reads servo state at a moderate rate.
  */
-constexpr TaskConfig READ_TASK = { pdMS_TO_TICKS(600), 2, 256 };
+constexpr TaskConfig READ_TASK = { pdMS_TO_TICKS(600), 2, 512 };
 
 /**
  * @brief Servo setter task
  * Medium-low priority, updates target positions and speeds.
  */
-constexpr TaskConfig SET_TASK = { pdMS_TO_TICKS(1000), 1, 256 };
+constexpr TaskConfig SET_TASK = { pdMS_TO_TICKS(1000), 1, 512 };
 
 /**
  * @brief Think/task planner
  * Low priority, background decision-making.
  */
-constexpr TaskConfig THINK_TASK = { pdMS_TO_TICKS(1200), 0, 256 };
+constexpr TaskConfig THINK_TASK = { pdMS_TO_TICKS(1200), 0, 512 };
 constexpr uint8_t MAX_ERRORS = 3;
 
 #endif // TASK_CONFIG_H

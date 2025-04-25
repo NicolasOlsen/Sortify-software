@@ -2,8 +2,8 @@
 #define PACKET_UTILS_H
 
 #include <stdint.h>
+#include <string.h>
 
-#include "shared/shared_servo_data.h"
 #include "comms/Communication_code.h"
 #include "config/communication_config.h"
 
@@ -18,8 +18,8 @@ namespace PACKET_UTILS {
  * @param outputArray The array to save the byte data
  */
 template<typename T>
-void convertBytesToTypedArray(const uint8_t* byteData, size_t count, T* outputArray) {
-    for (size_t i = 0; i < count; ++i) {    // Count is the amount of the data type
+void convertBytesToTypedArray(const uint8_t* byteData, uint8_t count, T* outputArray) {
+    for (uint8_t i = 0; i < count; ++i) {    // Count is the amount of the data type
         memcpy(&outputArray[i], &byteData[i * sizeof(T)], sizeof(T));   // Copies from the bytedata, with the size of the data type at a time
     }
 }

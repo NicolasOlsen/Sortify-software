@@ -88,9 +88,9 @@ namespace {
 
 constexpr uint8_t rangeMetaSize = 2; // [start_id][count] in payload
 
-// Generic read handler for any SharedServoData type
+// Generic read handler for any SharedArrayWithFlags type
 template<typename T, uint8_t SIZE>
-void handleReadRangeTemplate(SharedServoData<T, SIZE>& source, MainCommand responseCommand, const uint8_t* packet, uint8_t packetSize) {
+void handleReadRangeTemplate(SharedArrayWithFlags<T, SIZE>& source, MainCommand responseCommand, const uint8_t* packet, uint8_t packetSize) {
     if (!PACKET_UTILS::packetExpectedSize(packetSize, MIN_PACKET_SIZE + rangeMetaSize)) return;
 
     uint8_t startId = packet[PAYLOAD_INDEX];
@@ -107,9 +107,28 @@ void handleReadRangeTemplate(SharedServoData<T, SIZE>& source, MainCommand respo
     sendPacket(responseCommand, reinterpret_cast<uint8_t*>(values), count * sizeof(T));
 }
 
-// Generic write handler for any SharedServoData type
+// Generic read handler for any SharedArray type
 template<typename T, uint8_t SIZE>
-void handleWriteRangeTemplate(SharedServoData<T, SIZE>& target, const uint8_t* packet, uint8_t packetSize) {
+void handleReadRangeTemplate(SharedArray<T, SIZE>& source, MainCommand responseCommand, const uint8_t* packet, uint8_t packetSize) {
+    if (!PACKET_UTILS::packetExpectedSize(packetSize, MIN_PACKET_SIZE + rangeMetaSize)) return;
+
+    uint8_t startId = packet[PAYLOAD_INDEX];
+    uint8_t count   = packet[PAYLOAD_INDEX + 1];
+
+    if (startId + count > SIZE) {
+        sendNACK(ComErrorCode::ID_OUT_OF_RANGE);
+        return;
+    }
+
+    T values[SIZE];
+    source.Get(values, count, startId);
+
+    sendPacket(responseCommand, reinterpret_cast<uint8_t*>(values), count * sizeof(T));
+}
+
+// Generic write handler for any SharedArray type
+template<typename T, uint8_t SIZE>
+void handleWriteRangeTemplate(SharedArray<T, SIZE>& target, const uint8_t* packet, uint8_t packetSize) {
     if (!PACKET_UTILS::packetExpectedSize(packetSize, MIN_PACKET_SIZE + rangeMetaSize)) return;
 
     uint8_t startId = packet[PAYLOAD_INDEX];

@@ -5,10 +5,10 @@ using namespace COMM_CODE;
 
 namespace Shared
 {
-    SharedServoData<float, TOTAL_SERVO_COUNT> goalPositions;
-    SharedServoData<float, TOTAL_SERVO_COUNT> currentPositions;
-    SharedServoData<float, DXL_SERVO_COUNT> goalVelocities;
-    SharedServoData<DXLLibErrorCode_t, DXL_SERVO_COUNT> servoErrors;
+    SharedArray<float, TOTAL_SERVO_COUNT> goalPositions;
+    SharedArray<float, TOTAL_SERVO_COUNT> currentPositions;
+    SharedArray<float, DXL_SERVO_COUNT> goalVelocities;
+    SharedArrayWithFlags<DXLLibErrorCode_t, DXL_SERVO_COUNT> servoErrors;
 
     ServoManager<DXL_SERVO_COUNT, ANALOG_SERVO_COUNT> servoManager(DXL_SERVOS_CONFIG, ANALOG_SERVOS_CONFIG);
 

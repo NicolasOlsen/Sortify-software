@@ -37,7 +37,7 @@ struct TaskTimingStats {
         TIMING_SERIAL.print(averageTime());
         TIMING_SERIAL.print(" us, Max: ");
         TIMING_SERIAL.print(maxExecutionTime);
-        TIMING_SERIAL.print(" us");
+        TIMING_SERIAL.println(" us");
     }
 
     void reset() {

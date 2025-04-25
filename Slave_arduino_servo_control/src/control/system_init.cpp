@@ -5,7 +5,6 @@
 
 #include "config/servo_config.h"
 #include "config/communication_config.h"
-#include "control/servo_control.h"
 #include "comms/uart_receive.h"
 #include "shared/shared_objects.h"
 
@@ -20,14 +19,14 @@ void InitSystem() {
 
     UART_COMM::UART_init(BAUDRATE_COMM);
 
-    if(!initServoLibraries()) {
+    if(!ServoManager<DXL_SERVO_COUNT, ANALOG_SERVO_COUNT>::initServoLibraries()) {
         Debug::errorln("Couldnt initiate");
-        // Shared::systemState.Set(StatusCode::FAULT);
+        Shared::systemState.Set(StatusCode::FAULT);
     }
 
     if(!Shared::servoManager.initAll()) {
         Debug::errorln("Some or all of the dxl servos couldnt initiate");
-        // Shared::systemState.Set(StatusCode::FAULT);
+        Shared::systemState.Set(StatusCode::FAULT);
     }
 
     // Retrieve and store initialization error codes after initAll()
@@ -40,12 +39,14 @@ void InitSystem() {
         tempErrors, 
         Shared::servoManager.getDXLAmount());
 
-
-    Shared::goalPositions.Set(DEFAULT_SERVO_POSITIONS, TOTAL_SERVO_COUNT, 0, false);
+    Shared::goalVelocities.Set(DEFAULT_SERVO_VELOCITIES, DXL_SERVO_COUNT);
+    Shared::goalPositions.Set(DEFAULT_SERVO_POSITIONS, TOTAL_SERVO_COUNT);
+    Shared::currentPositions.Set(DEFAULT_SERVO_POSITIONS, TOTAL_SERVO_COUNT);
 
     if (Shared::systemState.Get() == StatusCode::FAULT) return;  // Return and the system is in fault mode
 
-    Shared::servoManager.setGoalPositions(DEFAULT_SERVO_POSITIONS, TOTAL_SERVO_COUNT);
+    Shared::servoManager.setGoalVelocities(DEFAULT_SERVO_VELOCITIES);
+    Shared::servoManager.setGoalPositions(DEFAULT_SERVO_POSITIONS);
 
     Shared::systemState.Set(StatusCode::IDLE);    // System is initialized and idle
     Debug::infoln("System initialized successfully");

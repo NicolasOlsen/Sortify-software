@@ -25,21 +25,21 @@ def main():
         # Heartbeat
         print_result("HEARTBEAT", uart.heartbeat())
 
+        # Write velocities to servos 0-4
+        print_result("WRITE_VELOCITY_RANGE", uart.write_velocity_range(0, [30, 30]))
+
         # Write positions to servos 0-4
-        print_result("WRITE_POSITION_RANGE", uart.write_position_range(4, [130.0]))
+        print_result("WRITE_POSITION_RANGE", uart.write_position_range(0, [150.0, 210.0]))
 
         # # Read positions back from servos 0-4
-        # print_result("READ_POSITION_RANGE", uart.read_position_range(0, 5))
-
-        # # Write velocities to servos 0-4
-        # print_result("WRITE_VELOCITY_RANGE", uart.write_velocity_range(0, [5.0, 5.5, 6.0, 6.5]))
+        print_result("READ_POSITION_RANGE", uart.read_position_range(0, 5))
 
         # # Read error codes from servos 0-4
-        # print_result("READ_ERROR_RANGE", uart.read_error_range(0, 4))
+        print_result("READ_ERROR_RANGE", uart.read_error_range(0, 4))
 
-        # # Reconfirm heartbeat
-        # res = uart.heartbeat()
-        # print_result("HEARTBEAT CONFIRM", res)
+        # Reconfirm heartbeat
+        res = uart.heartbeat()
+        print_result("HEARTBEAT CONFIRM", res)
 
     except Exception as e:
         print(f"[EXCEPTION] {e}")
@@ -49,4 +49,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    for i in range(10000):
+        main()
