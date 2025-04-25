@@ -47,7 +47,7 @@ def evaluate_ball(
         list of (score, cx, cy, r, x_mm, y_mm, z_mm)
     """
     results = []
-    inner_color = CIRCLE_DRAW_SETTINGS["COLOR_RED_BALL"] if name == "Red Ball" else CIRCLE_DRAW_SETTINGS["COLOR_BLUE_BALL"]
+    color = (0, 0, 255) if name == "Red Ball" else (255, 0, 0)
 
     for i, (cx, cy, r) in enumerate(balls):
         cxi = int(round(cx))
@@ -62,44 +62,8 @@ def evaluate_ball(
             x_mm, y_mm, z_mm = reproject_to_3d(cxi, cyi, depth, fx, fy, cx0, cy0)
 
         results.append((score, cxi, cyi, ri, x_mm, y_mm, z_mm))
-        
-        # Only overlay in normal (non-Pi) mode
-        if not pi_mode:
-            # Use "ball"/"sphere" terminology for overlays
-            if score > CIRCLE_DRAW_SETTINGS["SCORE_THRESH_CONFIRMED"]:
-                outer_color = CIRCLE_DRAW_SETTINGS["COLOR_CONFIRMED"]
-            elif score > CIRCLE_DRAW_SETTINGS["SCORE_THRESH_CANDIDATE"]:
-                outer_color = CIRCLE_DRAW_SETTINGS["COLOR_CANDIDATE"]
-            else:
-                outer_color = CIRCLE_DRAW_SETTINGS["COLOR_REJECTED"]
-            cv2.circle(
-                frame,
-                (cxi, cyi),
-                ri + CIRCLE_DRAW_SETTINGS["DRAW_THICKNESS_AUX"],
-                outer_color,
-                CIRCLE_DRAW_SETTINGS["DRAW_THICKNESS_AUX"]
-            )
-            cv2.circle(
-                frame,
-                (cxi, cyi),
-                ri,
-                inner_color,
-                CIRCLE_DRAW_SETTINGS["DRAW_THICKNESS_MAIN"]
-            )
-            # Label uses scientific language
-            if z_mm > 0:
-                text = f"Score={score:.2f} | Sphere X={int(x_mm)} Y={int(y_mm)} Z={int(z_mm)}"
-            else:
-                text = f"Score={score:.2f}"
-            org = (cxi - ri - 100, cyi - ri - 20)
-            cv2.putText(
-                frame,
-                text,
-                org,
-                CIRCLE_DRAW_SETTINGS["FONT"],
-                CIRCLE_DRAW_SETTINGS["FONT_SCALE"],
-                (255, 255, 255),
-                CIRCLE_DRAW_SETTINGS["FONT_THICKNESS"]
-            )
+
+        # Draw only a simple circle, in blue or red
+        cv2.circle(frame, (cxi, cyi), ri, color, 2)
 
     return results

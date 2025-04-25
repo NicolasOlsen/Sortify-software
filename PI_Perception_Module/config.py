@@ -11,17 +11,17 @@ DEFAULT_SLIDER_VALUES = [
     ("B H min", 100),  ("B H max", 140),
     ("B S min", 110),  ("B S max", 255),
     ("B V min", 60),   ("B V max", 255),
-    ("Kernel Size", 5),("Open Iter", 5),
-    ("Close Iter", 1), ("dp (x0.1)", 13),
-    ("minDist", 35),   ("param1", 170),
-    ("param2", 42),    ("minRadius", 35),
-    ("maxRadius", 200),("Focus", 131),
-    ("Alpha(x100)", 70),("Contrast", 0),
-    ("Saturation", 2), ("Sharpness", 2),
-    ("Brightness", 2), ("WhiteB", 2700),
+    ("Kernel Size", 0),("Open Iter", 0),
+    ("Close Iter", 0), ("dp (x0.1)", 12),
+    ("minDist", 35),   ("param1", 100),
+    ("param2", 42),    ("minRadius", 1),
+    ("maxRadius", 63),("Focus", 130),
+    ("Alpha(x100)", 50),("Contrast", 0),
+    ("Saturation", 4), ("Sharpness", 0),
+    ("Brightness", 1), ("WhiteB", 2700),
     # New for preprocessing Pi Mode/trackbars:
-    ("CLAHE Clip", 2), ("Gaussian K", 5),
-    ("Grayscale", 0)
+    ("CLAHE Clip", 0), ("Gaussian K", 0),
+    ("Grayscale", 1)
 ]
 SLIDER_MAX_VALUES = [
     20,180, 180,180, 255,255, 255,255, 180,180,255,255,205,255,31,10,
@@ -38,14 +38,14 @@ TRACKBAR_MAX = 255
 # -------- SYSTEM/PROCESSING ----------
 USE_HARDWARE_PREPROCESSING = False
 CIRCLE_PERSISTENCE_FRAMES = 5
-CIRCLE_MATCH_DIST = 100
-BALL_SMOOTHER_ALPHA = 0.25
+CIRCLE_MATCH_DIST = 50
+BALL_SMOOTHER_ALPHA = 0.05
 PI_MODE = True  # Set to True for Pi performance, or use a script/env switch if you want.
 
 # ---------- YOLO -------------
-YOLO_CFG = "cfg/yolov4-tiny.cfg"
-YOLO_WEIGHTS = "backup/yolov4-tiny_6obj_last.weights"
-YOLO_DATA = "data/obj.data"
+YOLO_CFG = "/Users/azi/Desktop/Sortify/darknet/cfg/yolov4-tiny.cfg"
+YOLO_WEIGHTS = "/Users/azi/Desktop/Sortify/darknet/backup/yolov4-tiny_6obj_last.weights"
+YOLO_DATA = "/Users/azi/Desktop/Sortify/darknet/data/obj.data"
 ENABLE_YOLO = True
 
 HSV_SNAPSHOT_FOLDER = "./HSV_SNAPSHOTS"

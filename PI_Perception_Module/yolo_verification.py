@@ -65,7 +65,7 @@ def yolo_inference(frame, pi_mode=False, spam_mode=False):
     cmd = [
     "/Users/azi/Desktop/Sortify/darknet/darknet", "detector", "test",
     YOLO_DATA, YOLO_CFG, YOLO_WEIGHTS,
-    "-", "-dont_show", "-ext_output", "-thresh", "0.01"
+    "-", "-dont_show", "-ext_output", "-thresh", "0.25"
 ]
     try:
         result = subprocess.run(
