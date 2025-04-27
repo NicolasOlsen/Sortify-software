@@ -40,7 +40,7 @@ public:
      * 
      * @return True if the servo was initialized successfully
      */
-    bool init(uint8_t id);
+    bool initDxl(uint8_t id);
 
     /**
      * @brief Sends a ping to a specific servo to check connectivity.
@@ -188,7 +188,7 @@ ServoManager<sizeDXL, sizeAnalog>::ServoManager(
 }
 
 template<uint8_t sizeDXL, uint8_t sizeAnalog>
-bool ServoManager<sizeDXL, sizeAnalog>::init(uint8_t id) {
+bool ServoManager<sizeDXL, sizeAnalog>::initDxl(uint8_t id) {
     if (id >= sizeDXL) {
         Debug::errorln("Tried to init out of DXL range");
         return false;

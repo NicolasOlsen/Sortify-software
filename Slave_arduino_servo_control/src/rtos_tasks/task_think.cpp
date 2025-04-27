@@ -37,10 +37,31 @@ static void TaskThink(void *pvParameters) {
 		  uint32_t startMicros = micros();
 	  	#endif
 
-		checkForErrors();
-		
-		if (Shared::systemState.Get() != StatusCode::FAULT) {
-			checkForMovement();
+		if (Shared::systemState.Get() != StatusCode::FAULT_INIT) {
+			checkForErrors();
+		}
+
+		switch(Shared::systemState.Get()) {
+			case StatusCode::INITIALIZING: {
+				break;
+			}
+			case StatusCode::IDLE: {
+				checkForMovement();
+				break;
+			}
+
+			case StatusCode::MOVING: {
+				checkForMovement();
+				break;
+			}
+
+			case StatusCode::FAULT_INIT: {
+				break;
+			}
+
+			case StatusCode::FAULT_RUNTIME: {
+				break;
+			}
 		}
 
 		#ifdef TIMING_MODE
@@ -146,8 +167,10 @@ void checkForErrors() {
 		}
 	}
 
-	// If the system is NOT OK
-	if (!systemStateOK) {
+	if (systemStateOK) {
+		// Shared::systemState.Set(StatusCode::IDLE);
+	}
+	else {
 		Debug::errorln("[T_Think] Switching to FAULT state");
 
 		// Freeze all movement by copying current positions as new goals
@@ -159,6 +182,6 @@ void checkForErrors() {
 			manager.getTotalAmount());
 
 		// System goes into FAULT mode
-		Shared::systemState.Set(StatusCode::FAULT);
+		Shared::systemState.Set(StatusCode::FAULT_RUNTIME);
 	}
 }

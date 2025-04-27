@@ -27,10 +27,11 @@ namespace COMM_CODE {
     // System Status Codes
     // Arduino sends one of these status codes in response to REQUEST_STATUS.
     enum class StatusCode : uint8_t {
-        INITIALIZING = 0x01,    // System is booting up, not ready yet
-        IDLE,                   // Servos are idle
-        MOVING,                 // Servos are moving
-        FAULT,                  // System is in an error state and cannot recover (sends the number of errors)
+        INITIALIZING = 0x01,   // System is booting up, hardware not ready
+        IDLE,                  // System initialized and waiting for commands
+        MOVING,                // Servos are actively moving to target positions
+        FAULT_INIT,            // Initialization failure (e.g., servo not found, UART setup failed)
+        FAULT_RUNTIME          // Failure during operation (e.g., overheat, disconnection)
     };
 
     // Error Codes

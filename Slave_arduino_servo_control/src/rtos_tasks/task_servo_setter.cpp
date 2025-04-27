@@ -12,6 +12,8 @@
     static TaskTimingStats commTiming;
 #endif
 
+using namespace COMM_CODE;
+
 static void TaskServoSetter(void *pvParameters) {
 	TickType_t lastWakeTime = xTaskGetTickCount();
 
@@ -29,12 +31,15 @@ static void TaskServoSetter(void *pvParameters) {
 			uint32_t startMicros = micros();
 		#endif
 
-		// Bulk get values for faster performance
-		Shared::goalPositions.Get(tempGoalPositions);
-		Shared::goalVelocities.Get(tempGoalVelocities);
-
-		manager.setGoalPositions(tempGoalPositions);  
-		manager.setGoalVelocities(tempGoalVelocities);
+		auto systemState = Shared::systemState.Get();
+		if (systemState != StatusCode::FAULT_INIT) {
+			// Safe to set servo goals even during runtime faults
+			Shared::goalPositions.Get(tempGoalPositions);
+			Shared::goalVelocities.Get(tempGoalVelocities);
+		
+			manager.setGoalPositions(tempGoalPositions);  
+			manager.setGoalVelocities(tempGoalVelocities);
+		}
 
 		#ifdef TIMING_MODE
             uint32_t duration = micros() - startMicros;

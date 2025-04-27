@@ -50,7 +50,8 @@ class SystemStatus(Enum):
 	INITIALIZING = 0x01
 	IDLE = 0x02
 	MOVING = 0x03
-	FAULT = 0x04
+	FAULT_INIT = 0x04
+	FAULT_RUNTIME = 0x05
 
 	def __str__(self):
 		return self.name

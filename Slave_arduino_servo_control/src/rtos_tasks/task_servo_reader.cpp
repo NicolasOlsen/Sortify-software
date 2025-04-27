@@ -30,12 +30,9 @@ static void TaskServoReader(void *pvParameters) {
 			uint32_t startMicros = micros();
 		#endif
 
-		StatusCode tempStatus = Shared::systemState.Get();
-
-		if (tempStatus == StatusCode::FAULT) {
-			// Zero out entire array to prevent garbage values for DXL section
-			memset(tempCurrentPositions, 0, sizeof(tempCurrentPositions));
-			
+		StatusCode systemState = Shared::systemState.Get();
+		if (systemState == StatusCode::FAULT_INIT ||
+			systemState == StatusCode::FAULT_RUNTIME) {			
 			// Ping DXL servos to keep them responsive and detect recovery,
 			// but avoid full reads to minimize task time in FAULT mode
 			manager.pingAll();
@@ -65,17 +62,12 @@ static void TaskServoReader(void *pvParameters) {
 			if (allSuccess) {
 				Shared::currentPositions.Set(tempCurrentPositions, manager.getTotalAmount());
 			} else {
-                Debug::infoln("Some servos failed to respond, not updating positions.");
+                Debug::warnln("Some servos failed to respond, not updating positions.");
             }
 
 			// Update the servo errors regardless of success
 			Shared::servoErrors.Set(tempErrors, manager.getDXLAmount());
 		}
-
-		// Adjust task frequency based on current state
-		TickType_t delayTicks = (tempStatus == StatusCode::FAULT) 
-			? READ_TASK.period * 2
-			: READ_TASK.period;
 
 		#ifdef TIMING_MODE
             uint32_t duration = micros() - startMicros;
@@ -90,7 +82,7 @@ static void TaskServoReader(void *pvParameters) {
             }
         #else
             // Wait until the next period
-			vTaskDelayUntil(&lastWakeTime, delayTicks);
+			vTaskDelayUntil(&lastWakeTime, READ_TASK.period);
         #endif
 	}
 }

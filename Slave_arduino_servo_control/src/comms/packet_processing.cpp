@@ -143,7 +143,9 @@ void handleWriteRangeTemplate(SharedArray<T, SIZE>& target, const uint8_t* packe
 
     T values[SIZE];
 
-    if (Shared::systemState.Get() == StatusCode::FAULT) {
+    auto systemState = Shared::systemState.Get();
+    if (systemState == StatusCode::FAULT_INIT ||
+        systemState == StatusCode::FAULT_RUNTIME) {
         Debug::warnln("System is in fault mode");
         UART_COMM::sendACK();
         return;
