@@ -64,6 +64,7 @@ bool DxlServo::initWithRetry(uint8_t maxAttempts) {
 bool DxlServo::ping() {
     bool success = dxl.ping(_id);
     _lastErrorCode = dxl.getLastLibErrCode();
+    dxl.getLastStatusPacketError();
 
     if (success) {
         Debug::infoln("DxlServo[" + String(_id) + "]: Ping successful");

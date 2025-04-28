@@ -9,7 +9,7 @@ namespace COMM_CODE {
     // The SBC sends these commands to request information or control the servos.
     enum class MainCommand : uint8_t {
         // Status and Health
-        HEARTBEAT       = 0x01,     // Master checks if Arduino is alive (Arduino responds with ACK)
+        PING_   = 0x01,             // Master checks if Arduino is alive (Arduino responds with ACK)
         ACK,                        // Generic ACK when no specific data is returned
         NACK,                       // Negative Acknowledge, payload contains ComErrorCode
     

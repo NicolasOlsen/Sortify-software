@@ -24,7 +24,7 @@ from enum import Enum
 
 class CommandCode(Enum):
 	# Status and Control
-	HEARTBEAT       = 0x01
+	PING       		= 0x01
 	ACKNOWLEDGE     = 0x02
 	NACK            = 0x03
 
@@ -341,14 +341,14 @@ class MasterUART:
 
 	# High level API
 	
-	def heartbeat(self) -> CommResponse:
+	def ping(self) -> CommResponse:
 		"""
-		Sends a heartbeat command to verify Arduino is alive.
+		Sends a ping command to verify Arduino is alive.
 
 		Returns:
 			CommResponse: True if ACK received, else error type.
 		"""
-		result = self._send_command(CommandCode.HEARTBEAT.value)
+		result = self._send_command(CommandCode.PING.value)
 		return self._to_comm_response(result, CommandCode.ACKNOWLEDGE)
 
 	def write_position_range(self, start_id: int, values: list[float]) -> CommResponse:

@@ -32,8 +32,8 @@ void processReceivedPacket(const uint8_t* packet, uint8_t packetSize) {
 
     switch (command) {
 
-        case MainCommand::HEARTBEAT: {
-            Debug::infoln("HB received");
+        case MainCommand::PING_: {
+            Debug::infoln("Ping received");
             sendACK();
             break;
         }

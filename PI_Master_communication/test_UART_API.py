@@ -24,7 +24,7 @@ def main():
 
     try:
         # Heartbeat
-        print_result("HEARTBEAT", uart.heartbeat())
+        print_result("HEARTBEAT", uart.ping())
 
         # Write velocities to servos 0-4
         print_result("WRITE_VELOCITY_RANGE", uart.write_velocity_range(0, [30, 30, 30, 30]))
@@ -42,7 +42,7 @@ def main():
 
         print_result("STOP_MOVEMENT", uart.stop_movement())
 
-        # Reconfirm heartbeat
+        # Reconfirm ping
         # status = SystemStatus.MOVING
         # while status == SystemStatus.MOVING:
         #     res = uart.read_position_range(0, 4)
