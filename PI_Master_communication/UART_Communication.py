@@ -31,12 +31,13 @@ class CommandCode(Enum):
 	# Position
 	READ_POSITION_RANGE     = 0x04
 	WRITE_POSITION_RANGE    = 0x05
+	STOP_MOVEMENT			= 0x06
 
 	# Velocity
-	WRITE_VELOCITY_RANGE    = 0x06
+	WRITE_VELOCITY_RANGE    = 0x07
 
 	# Error
-	READ_ERROR_RANGE        = 0x07
+	READ_ERROR_RANGE        = 0x08
 
 	# Internal / Meta
 	COMMAND_RESPONSE        = 0xF0
@@ -57,13 +58,14 @@ class SystemStatus(Enum):
 		return self.name
 
 class ComErrorCode(Enum):
-	COMM_TIMEOUT = 0x01
-	CHECKSUM_ERROR = 0x02
-	UNKNOWN_COMMAND = 0x03
-	BUFFER_OVERFLOW = 0x04
-	QUEUE_FULL = 0x05
-	INVALID_PAYLOAD_SIZE = 0x06
+	SYSTEM_FAULT = 0x01
+	COMM_TIMEOUT = 0x02
+	CHECKSUM_ERROR = 0x03
+	UNKNOWN_COMMAND = 0x04
+	BUFFER_OVERFLOW = 0x05
+	QUEUE_FULL = 0x06
 	ID_OUT_OF_RANGE = 0x07
+	POSITION_OUT_OF_RANGE = 0x08
 
 	def __str__(self):
 		return self.name
@@ -378,6 +380,16 @@ class MasterUART:
 		payload = bytes([start_id, count])
 		result = self._send_command(CommandCode.READ_POSITION_RANGE.value, payload)
 		return self._to_comm_response(result, CommandCode.READ_POSITION_RANGE, unpack_fmt='f')
+	
+	def stop_movement(self) -> CommResponse:
+		"""
+		Sends a stop command to stop every smart servo.
+
+		Returns:
+			CommResponse: True if ACK received, else error type.
+		"""
+		result = self._send_command(CommandCode.STOP_MOVEMENT.value)
+		return self._to_comm_response(result, CommandCode.ACKNOWLEDGE)
 
 	def write_velocity_range(self, start_id: int, values: list[float]) -> CommResponse:
 		"""

@@ -33,9 +33,12 @@ static void TaskServoReader(void *pvParameters) {
 		StatusCode systemState = Shared::systemState.Get();
 		if (systemState == StatusCode::FAULT_INIT ||
 			systemState == StatusCode::FAULT_RUNTIME) {			
-			// Ping DXL servos to keep them responsive and detect recovery,
+			// Ping DXL servos to keep them responsive and detect recovery for logging,
 			// but avoid full reads to minimize task time in FAULT mode
 			manager.pingAll();
+
+			manager.getErrors(tempErrors, manager.getDXLAmount());
+			Shared::servoErrors.Set(tempErrors, manager.getDXLAmount());
 		}
 		else {
 			// Normal operation: fetch real positions and error codes

@@ -308,7 +308,7 @@ bool DxlServo::syncGetPositions(DxlServo (&servos)[DXLAmount], float (&positions
     bool allSuccess = true;
     
     // Loop through each servo and process the data
-    if (receivedCount > 0 ) {
+    if (receivedCount == DXLAmount) {
         for (uint8_t i = 0; i < DXLAmount; ++i) {
             servos[i]._lastErrorCode = sr_infos.p_xels[i].error;
     

@@ -1,5 +1,6 @@
-from UART_Communication import MasterUART
+from UART_Communication import MasterUART, SystemStatus
 import logging
+import time
 
 # Optional: Enable debug-level logging
 logging.basicConfig(level=logging.INFO)
@@ -17,7 +18,7 @@ def main():
         port="COM3",
         baudrate=1000000,
         timeout=0.01,
-        read_timeout=0.6,
+        read_timeout=0.02,
         start_bytes=b'\xAA\x55'
     )
 
@@ -26,10 +27,10 @@ def main():
         print_result("HEARTBEAT", uart.heartbeat())
 
         # Write velocities to servos 0-4
-        print_result("WRITE_VELOCITY_RANGE", uart.write_velocity_range(0, [30, 30]))
+        print_result("WRITE_VELOCITY_RANGE", uart.write_velocity_range(0, [30, 30, 30, 30]))
 
         # Write positions to servos 0-4
-        print_result("WRITE_POSITION_RANGE", uart.write_position_range(0, [150.0, 210.0]))
+        print_result("WRITE_POSITION_RANGE", uart.write_position_range(0, [270, 270, 270, 270, 90]))
 
         # # Read positions back from servos 0-4
         print_result("READ_POSITION_RANGE", uart.read_position_range(0, 5))
@@ -37,9 +38,16 @@ def main():
         # # Read error codes from servos 0-4
         print_result("READ_ERROR_RANGE", uart.read_error_range(0, 4))
 
+        time.sleep(1.5)
+
+        print_result("STOP_MOVEMENT", uart.stop_movement())
+
         # Reconfirm heartbeat
-        res = uart.heartbeat()
-        print_result("HEARTBEAT CONFIRM", res)
+        # status = SystemStatus.MOVING
+        # while status == SystemStatus.MOVING:
+        #     res = uart.read_position_range(0, 4)
+        #     status = res.system_status
+        #     print_result("MOVING", res)
 
     except Exception as e:
         print(f"[EXCEPTION] {e}")
@@ -49,5 +57,4 @@ def main():
 
 
 if __name__ == "__main__":
-    for i in range(10000):
-        main()
+    main()

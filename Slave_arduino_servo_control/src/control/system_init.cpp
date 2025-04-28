@@ -13,7 +13,9 @@
 using namespace COMM_CODE;
 
 void InitSystem() {
-    Shared::systemState.Set(StatusCode::INITIALIZING);
+    StatusCode tempStatus = StatusCode::INITIALIZING;
+
+    Shared::systemState.Set(tempStatus);
     Debug::init(BAUDRATE_COMM);
     Debug::infoln("Initializing");
 
@@ -21,12 +23,14 @@ void InitSystem() {
 
     if(!ServoManager<DXL_SERVO_COUNT, ANALOG_SERVO_COUNT>::initServoLibraries()) {
         Debug::errorln("Initialization failed");
-        Shared::systemState.Set(StatusCode::FAULT_INIT);
+        tempStatus = StatusCode::FAULT_INIT;
+        Shared::systemState.Set(tempStatus);
     }
 
     if(!Shared::servoManager.initAll()) {
         Debug::errorln("Some or all of the dxl servos couldnt initiate");
-        Shared::systemState.Set(StatusCode::FAULT_INIT);
+        tempStatus = StatusCode::FAULT_INIT;
+        Shared::systemState.Set(tempStatus);
     }
 
     // Retrieve and store initialization error codes after initAll()
@@ -38,8 +42,6 @@ void InitSystem() {
     Shared::servoErrors.Set(
         tempErrors, 
         Shared::servoManager.getDXLAmount());
-
-    if (Shared::systemState.Get() == StatusCode::FAULT_INIT) return;  // Return and the system is in fault mode
 
     // Save the real positions of the servos if there was succesfull initalising
     float tempCurrentPosition[TOTAL_SERVO_COUNT];
@@ -63,6 +65,14 @@ void InitSystem() {
     Shared::goalVelocities.Set(DEFAULT_SERVO_VELOCITIES, DXL_SERVO_COUNT);
     Shared::goalPositions.Set(DEFAULT_SERVO_POSITIONS, TOTAL_SERVO_COUNT);
 
-    Shared::systemState.Set(StatusCode::IDLE);    // System is initialized and idle
-    Debug::infoln("System initialized successfully");
+    // Putting set goal velocities here to prevent it from going normal speed, which is too fast
+    Shared::servoManager.setGoalVelocities(DEFAULT_SERVO_VELOCITIES);
+
+    if (tempStatus == StatusCode::FAULT_INIT) {
+        Debug::errorln("System is in FAULT_INIT mode");
+    } 
+    else {
+        Shared::systemState.Set(StatusCode::IDLE);    // System is initialized and idle
+        Debug::infoln("System initialized successfully");
+    }
 }

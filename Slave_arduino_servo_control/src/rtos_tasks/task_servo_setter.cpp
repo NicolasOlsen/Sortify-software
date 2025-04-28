@@ -34,11 +34,11 @@ static void TaskServoSetter(void *pvParameters) {
 		auto systemState = Shared::systemState.Get();
 		if (systemState != StatusCode::FAULT_INIT) {
 			// Safe to set servo goals even during runtime faults
-			Shared::goalPositions.Get(tempGoalPositions);
 			Shared::goalVelocities.Get(tempGoalVelocities);
+			Shared::goalPositions.Get(tempGoalPositions);
 		
-			manager.setGoalPositions(tempGoalPositions);  
 			manager.setGoalVelocities(tempGoalVelocities);
+			manager.setGoalPositions(tempGoalPositions);  
 		}
 
 		#ifdef TIMING_MODE

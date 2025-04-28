@@ -2,7 +2,7 @@
 #define PROJECT_CONFIG_H
 
 // === Modes (define ONE) ===
-#define DEBUG
+// #define DEBUG
 // #define TIMING_MODE
 
 #if defined(DEBUG) && defined(TIMING_MODE)
@@ -21,6 +21,6 @@
 #define TIMING_SERIAL Serial1
 #define TIMING_SAMPLE_COUNT 1000
 
-#define TIMING_DELAY_TASKS 100000
+#define TIMING_DELAY_TASKS 1000
 
 #endif // PROJECT_CONFIG_H

@@ -20,7 +20,7 @@ auto& manager = Shared::servoManager;
 float tempCurrentPositions[manager.getTotalAmount()] = {0};
 float tempGoalPositions[manager.getTotalAmount()] = {0};
 
-constexpr float tolerance = 0.25f;
+constexpr float idleTolerance = 0.25f;
 
 void checkForErrors();
 void checkForMovement();
@@ -107,7 +107,7 @@ void checkForMovement() {
 	// Compare each servo's current position to its goal position
 	// If any servo is outside the allowed movement tolerance, the system is still moving
 	for (uint8_t id = 0; id < manager.getTotalAmount(); ++id) {
-		if (fabsf(tempCurrentPositions[id] - tempGoalPositions[id]) > tolerance) {
+		if (fabsf(tempCurrentPositions[id] - tempGoalPositions[id]) > idleTolerance) {
 			idle = false;
 			break;  // Early exit if any servo is still in motion
 		}

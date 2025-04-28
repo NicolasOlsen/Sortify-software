@@ -61,6 +61,15 @@ void processReceivedPacket(const uint8_t* packet, uint8_t packetSize) {
             handleWritePositionRange(packet, packetSize);
             break;
         }
+
+        case MainCommand::STOP_MOVEMENT: {
+            Debug::infoln("SM received");
+            float tempPositions[Shared::servoManager.getDXLAmount()];
+            Shared::currentPositions.Get(tempPositions, Shared::servoManager.getDXLAmount());
+            Shared::goalPositions.Set(tempPositions, Shared::servoManager.getDXLAmount());
+            sendACK();
+            break;
+        }
         
         // === Velocity Commands ===
         case MainCommand::WRITE_VELOCITY_RANGE: {
@@ -131,6 +140,7 @@ template<typename T, uint8_t SIZE>
 void handleWriteRangeTemplate(SharedArray<T, SIZE>& target, const uint8_t* packet, uint8_t packetSize) {
     if (!PACKET_UTILS::packetExpectedSize(packetSize, MIN_PACKET_SIZE + rangeMetaSize)) return;
 
+    MainCommand command = static_cast<MainCommand>(packet[COMMAND_INDEX]);
     uint8_t startId = packet[PAYLOAD_INDEX];
     uint8_t count   = packet[PAYLOAD_INDEX + 1];
 
@@ -147,11 +157,20 @@ void handleWriteRangeTemplate(SharedArray<T, SIZE>& target, const uint8_t* packe
     if (systemState == StatusCode::FAULT_INIT ||
         systemState == StatusCode::FAULT_RUNTIME) {
         Debug::warnln("System is in fault mode");
-        UART_COMM::sendACK();
+        UART_COMM::sendNACK(ComErrorCode::SYSTEM_FAULT);
         return;
     }
 
     PACKET_UTILS::convertBytesToTypedArray<T>(&packet[PAYLOAD_INDEX + rangeMetaSize], count, values);
+
+    if (command == MainCommand::WRITE_POSITION_RANGE) {
+        for (uint8_t id = startId; id < count; id++) {
+            if(!Shared::servoManager.checkPositionInAllowedRange(id, values[id])) {
+                UART_COMM::sendNACK(ComErrorCode::POSITION_OUT_OF_RANGE);
+                return;
+            }
+        }
+    }
 
     target.Set(values, count, startId);
 

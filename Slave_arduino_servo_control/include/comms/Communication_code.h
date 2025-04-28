@@ -16,6 +16,7 @@ namespace COMM_CODE {
         // Flexible Position Commands
         READ_POSITION_RANGE,        // Read positions from [start_id, count]
         WRITE_POSITION_RANGE,       // Write positions for [start_id, count]
+        STOP_MOVEMENT,              // Stops all movement
 
         // Flexible Velocity Command
         WRITE_VELOCITY_RANGE,       // Write velocities for [start_id, count]
@@ -37,13 +38,14 @@ namespace COMM_CODE {
     // Error Codes
     // These errors are reported with a NACK payload or in error reports.
     enum class ComErrorCode : uint8_t {
-        COMM_TIMEOUT = 0x01,        // Timeout waiting for full packet
+        SYSTEM_FAULT = 0x01,        // System is in fault mode
+        COMM_TIMEOUT,               // Timeout waiting for full packet
         CHECKSUM_ERROR,             // CRC16 mismatch
         UNKNOWN_COMMAND,            // Unrecognized command byte
         BUFFER_OVERFLOW,            // Packet too large for buffer
         QUEUE_FULL,                 // FreeRTOS queue full
-        INVALID_PAYLOAD_SIZE,       // Payload size does not match expected for given command
-        ID_OUT_OF_RANGE             // The requested id is out of range
+        ID_OUT_OF_RANGE,            // The requested id is out of range
+        POSITION_OUT_OF_RANGE       // The position is out of range
     };
 
     // Servo Identifiers
