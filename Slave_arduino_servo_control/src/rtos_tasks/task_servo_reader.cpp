@@ -23,6 +23,8 @@ static void TaskServoReader(void *pvParameters) {
 	static float tempCurrentPositions[manager.getTotalAmount()];
 	static DXLLibErrorCode_t tempErrors[manager.getDXLAmount()];
 
+	static uint8_t id = 0;
+
 	for (;;) {
 		Debug::infoln("[T_Reader]");
 
@@ -35,10 +37,12 @@ static void TaskServoReader(void *pvParameters) {
 			systemState == StatusCode::FAULT_RUNTIME) {			
 			// Ping DXL servos to keep them responsive and detect recovery for logging,
 			// but avoid full reads to minimize task time in FAULT mode
-			manager.pingAll();
+			manager.ping(id);
 
-			manager.getErrors(tempErrors, manager.getDXLAmount());
-			Shared::servoErrors.Set(tempErrors, manager.getDXLAmount());
+			tempErrors[id] = manager.getError(id);
+			Shared::servoErrors.Set(id, tempErrors[id]);
+
+			id = (id + 1) % manager.getDXLAmount();
 		}
 		else {
 			// Normal operation: fetch real positions and error codes

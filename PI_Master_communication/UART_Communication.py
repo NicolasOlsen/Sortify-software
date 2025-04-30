@@ -179,6 +179,7 @@ class MasterUART:
 		self.last_packet = packet
 
 		for attempt in range(self.MAX_RETRIES):
+			self.ser.reset_input_buffer()
 			self.ser.write(packet)
 			logger.info(f"[SEND] {packet.hex(' ')} (Attempt {attempt + 1})")
 

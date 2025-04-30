@@ -19,8 +19,8 @@
 
 // === Timing settings ===
 #define TIMING_SERIAL Serial1
-#define TIMING_SAMPLE_COUNT 1000
+#define TIMING_SAMPLE_COUNT 100
 
-#define TIMING_DELAY_TASKS 1000
+#define TIMING_DELAY_TASKS 0
 
 #endif // PROJECT_CONFIG_H

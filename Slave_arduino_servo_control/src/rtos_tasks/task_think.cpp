@@ -17,10 +17,10 @@ using namespace COMM_CODE;
 
 auto& manager = Shared::servoManager;
 
-float tempCurrentPositions[manager.getTotalAmount()] = {0};
-float tempGoalPositions[manager.getTotalAmount()] = {0};
+float tempCurrentPositions[manager.getTotalAmount()];
+float tempGoalPositions[manager.getTotalAmount()];
 
-constexpr float idleTolerance = 0.25f;
+constexpr float idleTolerance = 1.0f;
 
 void checkForErrors();
 void checkForMovement();
@@ -126,22 +126,31 @@ void checkForMovement() {
 
 
 void checkForErrors() {
-	// Temporary buffer for DXL error codes
-	DXLLibErrorCode_t tempErrors[manager.getDXLAmount()] = {0};
+	// Temporary buffers for DXL error codes and flags
+	DXLLibErrorCode_t tempErrors[manager.getDXLAmount()];
+	bool tempErrorFlags[manager.getDXLAmount()];
 
 	// Persistent error count for each DXL servo across task cycles
-	static uint8_t errorCount[manager.getDXLAmount()] = {0};
+	static uint8_t errorCount[manager.getDXLAmount()];
 
 	// Read latest servo error states from shared memory
-	Shared::servoErrors.Get(
-		tempErrors, 
-		manager.getDXLAmount());
+	Shared::servoErrors.Get(tempErrors);
+
+	Shared::servoErrors.GetFlags(tempErrorFlags);
 
 	// Used to determine if system should remain operational or enter FAULT
 	bool systemStateOK = true;
 
 	// Loop through all Dynamixel servos to check their error status
 	for (uint8_t id = 0; id < manager.getDXLAmount(); id++) {
+		// Check flags if changed
+		if (tempErrorFlags[id]) {
+			tempErrorFlags[id] = false;
+		}
+		else {	// Dont process error, its not been updated
+			continue;
+		}
+
 		if (tempErrors[id] == DXL_LIB_OK) {
 			// Reset error counter on successful communication
 			errorCount[id] = 0;
@@ -166,6 +175,8 @@ void checkForErrors() {
 			Debug::errorln("Critical error on servo ID: " + String(id));
 		}
 	}
+
+	Shared::servoErrors.SetFlags(tempErrorFlags);
 
 	if (systemStateOK) {
 		// Shared::systemState.Set(StatusCode::IDLE);

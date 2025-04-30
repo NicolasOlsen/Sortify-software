@@ -64,10 +64,20 @@ void processReceivedPacket(const uint8_t* packet, uint8_t packetSize) {
 
         case MainCommand::STOP_MOVEMENT: {
             Debug::infoln("SM received");
-            float tempPositions[Shared::servoManager.getDXLAmount()];
-            Shared::currentPositions.Get(tempPositions, Shared::servoManager.getDXLAmount());
-            Shared::goalPositions.Set(tempPositions, Shared::servoManager.getDXLAmount());
-            sendACK();
+
+            auto systemState = Shared::systemState.Get();
+            if (systemState == StatusCode::FAULT_INIT ||
+                systemState == StatusCode::FAULT_RUNTIME) {
+                Debug::warnln("System is in fault mode");
+                UART_COMM::sendNACK(ComErrorCode::SYSTEM_FAULT);
+                return;
+            }
+            else {
+                float tempPositions[Shared::servoManager.getDXLAmount()];
+                Shared::currentPositions.Get(tempPositions, Shared::servoManager.getDXLAmount());
+                Shared::goalPositions.Set(tempPositions, Shared::servoManager.getDXLAmount());
+                sendACK();
+            }
             break;
         }
         

@@ -21,25 +21,25 @@ struct TaskConfig {
  * @brief Communication task
  * High priority, frequent execution for critical I/O with external systems (SBC or PC).
  */
-constexpr TaskConfig COMM_TASK = { pdMS_TO_TICKS(17), 3, 512 };
+constexpr TaskConfig COMM_TASK = { pdMS_TO_TICKS(17), 4, 512 };
 
 /**
  * @brief Think/task planner
- * Low priority, background decision-making.
+ * Medium-high priority, background decision-making.
  */
-constexpr TaskConfig THINK_TASK = { pdMS_TO_TICKS(33), 2, 256 };
+constexpr TaskConfig THINK_TASK = { pdMS_TO_TICKS(33), 3, 256 };
 constexpr uint8_t MAX_ERRORS = 3;
 
 /**
  * @brief Servo setter task
  * Medium-low priority, updates target positions and speeds.
  */
-constexpr TaskConfig SET_TASK = { pdMS_TO_TICKS(49), 1, 512 };
+constexpr TaskConfig SET_TASK = { pdMS_TO_TICKS(33), 2, 512 };
 
 /**
  * @brief Servo reader task
- * Medium-high priority, reads servo state at a moderate rate.
+ * Lowest priority, reads servo state at a moderate rate.
  */
-constexpr TaskConfig READ_TASK = { pdMS_TO_TICKS(81), 0, 512 };
+constexpr TaskConfig READ_TASK = { pdMS_TO_TICKS(33), 1, 512 };
 
 #endif // TASK_CONFIG_H
