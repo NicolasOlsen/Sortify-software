@@ -30,7 +30,7 @@ def main():
         print_result("WRITE_VELOCITY_RANGE", uart.write_velocity_range(0, [30, 30, 30, 30]))
 
         # Write positions to servos 0-4
-        print_result("WRITE_POSITION_RANGE", uart.write_position_range(0, [180, 270, 180, 180, 130]))
+        print_result("WRITE_POSITION_RANGE", uart.write_position_range(0, [180, 180, 180, 180, 100]))
 
         # # Read positions back from servos 0-4
         print_result("READ_POSITION_RANGE", uart.read_position_range(0, 5))

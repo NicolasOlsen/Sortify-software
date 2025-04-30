@@ -25,19 +25,18 @@ from enum import Enum
 class CommandCode(Enum):
 	# Status and Control
 	PING       		= 0x01
-	ACKNOWLEDGE     = 0x02
-	NACK            = 0x03
+	NACK            = 0x02
 
 	# Position
-	READ_POSITION_RANGE     = 0x04
-	WRITE_POSITION_RANGE    = 0x05
-	STOP_MOVEMENT			= 0x06
+	READ_POSITION_RANGE     = 0x03
+	WRITE_POSITION_RANGE    = 0x04
+	STOP_MOVEMENT			= 0x05
 
 	# Velocity
-	WRITE_VELOCITY_RANGE    = 0x07
+	WRITE_VELOCITY_RANGE    = 0x06
 
 	# Error
-	READ_ERROR_RANGE        = 0x08
+	READ_ERROR_RANGE        = 0x07
 
 	# Internal / Meta
 	COMMAND_RESPONSE        = 0xF0
@@ -291,17 +290,10 @@ class MasterUART:
 				crc_ok=True
 			)
 
-		command_to_type = {
-			CommandCode.ACKNOWLEDGE.value: CommandCode.ACKNOWLEDGE,
-			CommandCode.NACK.value: CommandCode.NACK,
-			CommandCode.READ_POSITION_RANGE.value: CommandCode.READ_POSITION_RANGE,
-			CommandCode.READ_ERROR_RANGE.value: CommandCode.READ_ERROR_RANGE,
-		}
-
-		packet_type = command_to_type.get(command, CommandCode.COMMAND_RESPONSE)
-
-		# Log unknown command if unexpected
-		if packet_type == CommandCode.COMMAND_RESPONSE:
+		try:
+			packet_type = CommandCode(command)
+		except ValueError:
+			packet_type = CommandCode.COMMAND_RESPONSE
 			logger.warning(f"Unknown command code: 0x{command:02X}")
 
 		return ParsedPacketResult(
@@ -327,7 +319,7 @@ class MasterUART:
 			return CommResponse(False, error_enum, result.system_status)
 
 		# THEN check for CRC or unexpected command
-		if not result.crc_ok or result.command != expected_type.value:
+		if not result.crc_ok or result.packet_type != expected_type:
 			return CommResponse(False, result.packet_type, result.system_status)
 
 		# Otherwise, parse the payload
@@ -350,7 +342,7 @@ class MasterUART:
 			CommResponse: True if ACK received, else error type.
 		"""
 		result = self._send_command(CommandCode.PING.value)
-		return self._to_comm_response(result, CommandCode.ACKNOWLEDGE)
+		return self._to_comm_response(result, CommandCode.PING)
 
 	def write_position_range(self, start_id: int, values: list[float]) -> CommResponse:
 		"""
@@ -365,7 +357,7 @@ class MasterUART:
 		"""
 		payload = bytes([start_id, len(values)]) + struct.pack(f'<{len(values)}f', *values)
 		result = self._send_command(CommandCode.WRITE_POSITION_RANGE.value, payload)
-		return self._to_comm_response(result, CommandCode.ACKNOWLEDGE)
+		return self._to_comm_response(result, CommandCode.WRITE_POSITION_RANGE)
 
 	def read_position_range(self, start_id: int, count: int) -> CommResponse:
 		"""
@@ -390,7 +382,7 @@ class MasterUART:
 			CommResponse: True if ACK received, else error type.
 		"""
 		result = self._send_command(CommandCode.STOP_MOVEMENT.value)
-		return self._to_comm_response(result, CommandCode.ACKNOWLEDGE)
+		return self._to_comm_response(result, CommandCode.STOP_MOVEMENT)
 
 	def write_velocity_range(self, start_id: int, values: list[float]) -> CommResponse:
 		"""
@@ -405,7 +397,7 @@ class MasterUART:
 		"""
 		payload = bytes([start_id, len(values)]) + struct.pack(f'<{len(values)}f', *values)
 		result = self._send_command(CommandCode.WRITE_VELOCITY_RANGE.value, payload)
-		return self._to_comm_response(result, CommandCode.ACKNOWLEDGE)
+		return self._to_comm_response(result, CommandCode.WRITE_VELOCITY_RANGE)
 
 	def read_error_range(self, start_id: int, count: int) -> CommResponse:
 		"""

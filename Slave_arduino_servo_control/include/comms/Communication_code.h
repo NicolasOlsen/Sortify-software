@@ -9,21 +9,20 @@ namespace COMM_CODE {
     // The SBC sends these commands to request information or control the servos.
     enum class MainCommand : uint8_t {
         // Status and Health
-        PING_   = 0x01,             // Master checks if Arduino is alive (Arduino responds with ACK)
-        ACK,                        // Generic ACK when no specific data is returned
-        NACK,                       // Negative Acknowledge, payload contains ComErrorCode
+        PING_ = 0x01,                 // Master checks if Arduino is alive (Arduino responds with PING + system state)
+        NACK,                        // Negative Acknowledge (command failed), payload = ComErrorCode
     
-        // Flexible Position Commands
-        READ_POSITION_RANGE,        // Read positions from [start_id, count]
-        WRITE_POSITION_RANGE,       // Write positions for [start_id, count]
-        STOP_MOVEMENT,              // Stops all movement
-
-        // Flexible Velocity Command
-        WRITE_VELOCITY_RANGE,       // Write velocities for [start_id, count]
-
-        // Flexible Error Reporting
-        READ_ERROR_RANGE            // Read error status from [start_id, count]
-    };    
+        // Position Control
+        READ_POSITION_RANGE,        // Read current positions from [start_id, count]
+        WRITE_POSITION_RANGE,       // Set target positions for [start_id, count]
+        STOP_MOVEMENT,              // Immediately stops all servo movement
+    
+        // Velocity Control
+        WRITE_VELOCITY_RANGE,       // Set velocities for [start_id, count]
+    
+        // Error Reporting
+        READ_ERROR_RANGE            // Read error flags from [start_id, count]
+    };       
 
     // System Status Codes
     // Arduino sends one of these status codes in response to REQUEST_STATUS.

@@ -34,12 +34,7 @@ void processReceivedPacket(const uint8_t* packet, uint8_t packetSize) {
 
         case MainCommand::PING_: {
             Debug::infoln("Ping received");
-            sendACK();
-            break;
-        }
-
-        case MainCommand::ACK: {
-            Debug::infoln("ACK received");
+            sendACK(command);
             break;
         }
 
@@ -76,7 +71,7 @@ void processReceivedPacket(const uint8_t* packet, uint8_t packetSize) {
                 float tempPositions[Shared::servoManager.getDXLAmount()];
                 Shared::currentPositions.Get(tempPositions, Shared::servoManager.getDXLAmount());
                 Shared::goalPositions.Set(tempPositions, Shared::servoManager.getDXLAmount());
-                sendACK();
+                sendACK(command);
             }
             break;
         }
@@ -174,17 +169,18 @@ void handleWriteRangeTemplate(SharedArray<T, SIZE>& target, const uint8_t* packe
     PACKET_UTILS::convertBytesToTypedArray<T>(&packet[PAYLOAD_INDEX + rangeMetaSize], count, values);
 
     if (command == MainCommand::WRITE_POSITION_RANGE) {
-        for (uint8_t id = startId; id < count; id++) {
-            if(!Shared::servoManager.checkPositionInAllowedRange(id, values[id])) {
+        for (uint8_t i = 0; i < count; ++i) {
+            uint8_t servoId = startId + i;
+            if (!Shared::servoManager.checkPositionInAllowedRange(servoId, values[i])) {
                 UART_COMM::sendNACK(ComErrorCode::POSITION_OUT_OF_RANGE);
                 return;
             }
-        }
+        }        
     }
 
     target.Set(values, count, startId);
 
-    sendACK();
+    sendACK(command);
 }
 
 void handleReadPositionRange(const uint8_t* packet, uint8_t packetSize) {
