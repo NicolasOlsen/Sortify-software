@@ -36,7 +36,8 @@ class CommandCode(Enum):
 	WRITE_VELOCITY_RANGE    = 0x06
 
 	# Error
-	READ_ERROR_RANGE        = 0x07
+	READ_CURRENT_ERROR_RANGE  	= 0x07
+	READ_LAST_ERROR_RANGE  		= 0x08
 
 	# Internal / Meta
 	COMMAND_RESPONSE        = 0xF0
@@ -399,9 +400,9 @@ class MasterUART:
 		result = self._send_command(CommandCode.WRITE_VELOCITY_RANGE.value, payload)
 		return self._to_comm_response(result, CommandCode.WRITE_VELOCITY_RANGE)
 
-	def read_error_range(self, start_id: int, count: int) -> CommResponse:
+	def read_current_error_range(self, start_id: int, count: int) -> CommResponse:
 		"""
-		Requests error codes from a range of servos.
+		Requests current error codes from a range of servos.
 
 		Args:
 			start_id (int): Starting servo ID.
@@ -411,8 +412,23 @@ class MasterUART:
 			CommResponse: List of uint32 error flags or error.
 		"""
 		payload = bytes([start_id, count])
-		result = self._send_command(CommandCode.READ_ERROR_RANGE.value, payload)
-		return self._to_comm_response(result, CommandCode.READ_ERROR_RANGE, unpack_fmt='I')
+		result = self._send_command(CommandCode.READ_CURRENT_ERROR_RANGE.value, payload)
+		return self._to_comm_response(result, CommandCode.READ_CURRENT_ERROR_RANGE, unpack_fmt='I')
+	
+	def read_last_error_range(self, start_id: int, count: int) -> CommResponse:
+		"""
+		Requests last error codes from a range of servos.
+
+		Args:
+			start_id (int): Starting servo ID.
+			count (int): Number of servos to query.
+
+		Returns:
+			CommResponse: List of uint32 error flags or error.
+		"""
+		payload = bytes([start_id, count])
+		result = self._send_command(CommandCode.READ_LAST_ERROR_RANGE.value, payload)
+		return self._to_comm_response(result, CommandCode.READ_LAST_ERROR_RANGE, unpack_fmt='I')
 
 	def close(self):
 		self.ser.close()

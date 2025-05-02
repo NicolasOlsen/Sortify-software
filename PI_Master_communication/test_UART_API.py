@@ -27,26 +27,27 @@ def main():
         print_result("PING", uart.ping())
 
         # Write velocities to servos 0-4
-        print_result("WRITE_VELOCITY_RANGE", uart.write_velocity_range(0, [30, 30, 30, 30]))
+        # print_result("WRITE_VELOCITY_RANGE", uart.write_velocity_range(0, [30, 30, 30, 30]))
 
         # Write positions to servos 0-4
-        print_result("WRITE_POSITION_RANGE", uart.write_position_range(0, [180, 180, 180, 180, 100]))
+        # print_result("WRITE_POSITION_RANGE", uart.write_position_range(0, [170, 170, 170, 170, 0]))
 
         # # Read positions back from servos 0-4
         print_result("READ_POSITION_RANGE", uart.read_position_range(0, 5))
 
         # # Read error codes from servos 0-4
-        print_result("READ_ERROR_RANGE", uart.read_error_range(0, 4))
+        print_result("READ_CURRENT_ERROR_RANGE", uart.read_current_error_range(0, 4))
+        print_result("READ_LAST_ERROR_RANGE", uart.read_last_error_range(0, 4))
 
         # time.sleep(1.5)
 
         # print_result("STOP_MOVEMENT", uart.stop_movement())
 
-        status = SystemStatus.MOVING
-        while status == SystemStatus.MOVING:
-            res = uart.read_position_range(0, 4)
-            status = res.system_status
-            print_result("MOVING", res)
+        # status = SystemStatus.MOVING
+        # while status == SystemStatus.MOVING:
+        #     res = uart.read_position_range(0, 4)
+        #     status = res.system_status
+        #     print_result("MOVING", res)
 
         # for i in range(5):
         #     print_result("WRITE_POSITION_RANGE", uart.write_position_range(0, [270, 270, 270, 270, 130]))

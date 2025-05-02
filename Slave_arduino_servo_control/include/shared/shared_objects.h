@@ -15,7 +15,8 @@ namespace Shared
     extern SharedArray<float, TOTAL_SERVO_COUNT> goalPositions;
     extern SharedArray<float, TOTAL_SERVO_COUNT> currentPositions;
     extern SharedArray<float, DXL_SERVO_COUNT> goalVelocities;
-    extern SharedArrayWithFlags<DXLLibErrorCode_t, DXL_SERVO_COUNT> servoErrors;
+    extern SharedArrayWithFlags<DXLLibErrorCode_t, DXL_SERVO_COUNT> currentErrors;
+    extern SharedArrayWithFlags<DXLLibErrorCode_t, DXL_SERVO_COUNT> lastErrors;
 
     extern ServoManager<DXL_SERVO_COUNT, ANALOG_SERVO_COUNT> servoManager;
 

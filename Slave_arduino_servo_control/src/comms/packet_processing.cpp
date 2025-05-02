@@ -14,7 +14,8 @@ namespace UART_COMM {
 
 namespace {
     void handleReadPositionRange(const uint8_t* packet, uint8_t packetSize);
-    void handleReadErrorRange(const uint8_t* packet, uint8_t packetSize);
+    void handleCurrentReadErrorRange(const uint8_t* packet, uint8_t packetSize);
+    void handleReadLastErrorRange(const uint8_t* packet, uint8_t packetSize);
     void handleWritePositionRange(const uint8_t* packet, uint8_t packetSize);
     void handleWriteVelocityRange(const uint8_t* packet, uint8_t packetSize);
 }    
@@ -84,9 +85,15 @@ void processReceivedPacket(const uint8_t* packet, uint8_t packetSize) {
         }
         
         // === Error Commands ===
-        case MainCommand::READ_ERROR_RANGE: {
+        case MainCommand::READ_CURRENT_ERROR_RANGE: {
             Debug::infoln("RER received");
-            handleReadErrorRange(packet, packetSize);
+            handleCurrentReadErrorRange(packet, packetSize);
+            break;
+        }
+
+        case MainCommand::READ_LAST_ERROR_RANGE: {
+            Debug::infoln("RLER received");
+            handleReadLastErrorRange(packet, packetSize);
             break;
         }
 
@@ -104,9 +111,10 @@ constexpr uint8_t rangeMetaSize = 2; // [start_id][count] in payload
 
 // Generic read handler for any SharedArrayWithFlags type
 template<typename T, uint8_t SIZE>
-void handleReadRangeTemplate(SharedArrayWithFlags<T, SIZE>& source, MainCommand responseCommand, const uint8_t* packet, uint8_t packetSize) {
+void handleReadRangeTemplate(SharedArrayWithFlags<T, SIZE>& source, const uint8_t* packet, uint8_t packetSize) {
     if (!PACKET_UTILS::packetExpectedSize(packetSize, MIN_PACKET_SIZE + rangeMetaSize)) return;
 
+    MainCommand command = static_cast<MainCommand>(packet[COMMAND_INDEX]);
     uint8_t startId = packet[PAYLOAD_INDEX];
     uint8_t count   = packet[PAYLOAD_INDEX + 1];
 
@@ -118,14 +126,15 @@ void handleReadRangeTemplate(SharedArrayWithFlags<T, SIZE>& source, MainCommand 
     T values[SIZE];
     source.Get(values, count, startId);
 
-    sendPacket(responseCommand, reinterpret_cast<uint8_t*>(values), count * sizeof(T));
+    sendPacket(command, reinterpret_cast<uint8_t*>(values), count * sizeof(T));
 }
 
 // Generic read handler for any SharedArray type
 template<typename T, uint8_t SIZE>
-void handleReadRangeTemplate(SharedArray<T, SIZE>& source, MainCommand responseCommand, const uint8_t* packet, uint8_t packetSize) {
+void handleReadRangeTemplate(SharedArray<T, SIZE>& source, const uint8_t* packet, uint8_t packetSize) {
     if (!PACKET_UTILS::packetExpectedSize(packetSize, MIN_PACKET_SIZE + rangeMetaSize)) return;
 
+    MainCommand command = static_cast<MainCommand>(packet[COMMAND_INDEX]);
     uint8_t startId = packet[PAYLOAD_INDEX];
     uint8_t count   = packet[PAYLOAD_INDEX + 1];
 
@@ -137,7 +146,7 @@ void handleReadRangeTemplate(SharedArray<T, SIZE>& source, MainCommand responseC
     T values[SIZE];
     source.Get(values, count, startId);
 
-    sendPacket(responseCommand, reinterpret_cast<uint8_t*>(values), count * sizeof(T));
+    sendPacket(command, reinterpret_cast<uint8_t*>(values), count * sizeof(T));
 }
 
 // Generic write handler for any SharedArray type
@@ -184,11 +193,15 @@ void handleWriteRangeTemplate(SharedArray<T, SIZE>& target, const uint8_t* packe
 }
 
 void handleReadPositionRange(const uint8_t* packet, uint8_t packetSize) {
-    handleReadRangeTemplate(Shared::currentPositions, MainCommand::READ_POSITION_RANGE, packet, packetSize);
+    handleReadRangeTemplate(Shared::currentPositions, packet, packetSize);
 }
 
-void handleReadErrorRange(const uint8_t* packet, uint8_t packetSize) {
-    handleReadRangeTemplate(Shared::servoErrors, MainCommand::READ_ERROR_RANGE, packet, packetSize);
+void handleCurrentReadErrorRange(const uint8_t* packet, uint8_t packetSize) {
+    handleReadRangeTemplate(Shared::currentErrors, packet, packetSize);
+}
+
+void handleReadLastErrorRange(const uint8_t* packet, uint8_t packetSize) {
+    handleReadRangeTemplate(Shared::lastErrors, packet, packetSize);
 }
 
 void handleWritePositionRange(const uint8_t* packet, uint8_t packetSize) {

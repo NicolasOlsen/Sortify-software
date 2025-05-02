@@ -21,7 +21,8 @@ namespace COMM_CODE {
         WRITE_VELOCITY_RANGE,       // Set velocities for [start_id, count]
     
         // Error Reporting
-        READ_ERROR_RANGE            // Read error flags from [start_id, count]
+        READ_CURRENT_ERROR_RANGE,           // Read current error from [start_id, count]
+        READ_LAST_ERROR_RANGE       // Read last error from [start_id, count]
     };       
 
     // System Status Codes

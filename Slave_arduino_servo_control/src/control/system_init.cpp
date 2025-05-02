@@ -39,7 +39,10 @@ void InitSystem() {
     Shared::servoManager.getErrors(
         tempErrors, 
         Shared::servoManager.getDXLAmount());
-    Shared::servoErrors.Set(
+    Shared::currentErrors.Set(
+        tempErrors, 
+        Shared::servoManager.getDXLAmount());
+    Shared::lastErrors.Set(
         tempErrors, 
         Shared::servoManager.getDXLAmount());
 

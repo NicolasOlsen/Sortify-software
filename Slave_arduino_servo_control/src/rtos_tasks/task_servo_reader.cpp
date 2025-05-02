@@ -40,7 +40,7 @@ static void TaskServoReader(void *pvParameters) {
 			manager.ping(id);
 
 			tempErrors[id] = manager.getError(id);
-			Shared::servoErrors.Set(id, tempErrors[id]);
+			Shared::currentErrors.Set(id, tempErrors[id]);
 
 			id = (id + 1) % manager.getDXLAmount();
 		}
@@ -73,7 +73,7 @@ static void TaskServoReader(void *pvParameters) {
             }
 
 			// Update the servo errors regardless of success
-			Shared::servoErrors.Set(tempErrors, manager.getDXLAmount());
+			Shared::currentErrors.Set(tempErrors, manager.getDXLAmount());
 		}
 
 		#ifdef TIMING_MODE

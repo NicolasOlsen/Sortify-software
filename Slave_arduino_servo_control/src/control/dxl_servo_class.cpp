@@ -36,9 +36,18 @@ bool DxlServo::init() {
         return false;
     }
 
-    dxl.torqueOff(_id);
-    dxl.setOperatingMode(_id, OP_POSITION);
-    dxl.torqueOn(_id);
+    if (!dxl.torqueOff(_id)) {
+        Debug::errorln("DxlServo[" + String(_id) + "]: init failed");
+        return false;
+    } 
+    if (!dxl.setOperatingMode(_id, OP_POSITION)) {
+        Debug::errorln("DxlServo[" + String(_id) + "]: init failed");
+        return false;
+    } 
+    if (!dxl.torqueOn(_id)) {
+        Debug::errorln("DxlServo[" + String(_id) + "]: init failed");
+        return false;
+    } 
 
     Debug::infoln("DxlServo[" + String(_id) + "]: Ping successful");
     return true;

@@ -22,7 +22,7 @@ float tempGoalPositions[manager.getTotalAmount()];
 
 constexpr float idleTolerance = 1.0f;
 
-void checkForErrors();
+void checkForErrors(StatusCode status);
 void checkForMovement();
 
 static void TaskThink(void *pvParameters) {
@@ -37,8 +37,9 @@ static void TaskThink(void *pvParameters) {
 		  uint32_t startMicros = micros();
 	  	#endif
 
-		if (Shared::systemState.Get() != StatusCode::FAULT_INIT) {
-			checkForErrors();
+		StatusCode status = Shared::systemState.Get();
+		if (status != StatusCode::FAULT_INIT) {
+			checkForErrors(status);
 		}
 
 		switch(Shared::systemState.Get()) {
@@ -125,7 +126,7 @@ void checkForMovement() {
 }
 
 
-void checkForErrors() {
+void checkForErrors(StatusCode status) {
 	// Temporary buffers for DXL error codes and flags
 	DXLLibErrorCode_t tempErrors[manager.getDXLAmount()];
 	bool tempErrorFlags[manager.getDXLAmount()];
@@ -134,9 +135,9 @@ void checkForErrors() {
 	static uint8_t errorCount[manager.getDXLAmount()];
 
 	// Read latest servo error states from shared memory
-	Shared::servoErrors.Get(tempErrors);
+	Shared::currentErrors.Get(tempErrors);
 
-	Shared::servoErrors.GetFlags(tempErrorFlags);
+	Shared::currentErrors.GetFlags(tempErrorFlags);
 
 	// Used to determine if system should remain operational or enter FAULT
 	bool systemStateOK = true;
@@ -176,10 +177,12 @@ void checkForErrors() {
 		}
 	}
 
-	Shared::servoErrors.SetFlags(tempErrorFlags);
+	Shared::currentErrors.SetFlags(tempErrorFlags);
 
 	if (systemStateOK) {
-		// Shared::systemState.Set(StatusCode::IDLE);
+		if (status == StatusCode::FAULT_RUNTIME) {
+			// Shared::systemState.Set(StatusCode::INITIALIZING);
+		}
 	}
 	else {
 		Debug::errorln("[T_Think] Switching to FAULT state");
@@ -192,7 +195,11 @@ void checkForErrors() {
 			tempCurrentPositions, 
 			manager.getTotalAmount());
 
-		// System goes into FAULT mode
-		Shared::systemState.Set(StatusCode::FAULT_RUNTIME);
+		// System goes into FAULT mode and saves errors if not already
+		if (status != StatusCode::FAULT_INIT ||
+		status != StatusCode::FAULT_RUNTIME) {
+			Shared::systemState.Set(StatusCode::FAULT_RUNTIME);
+			Shared::lastErrors.Set(tempErrors);
+		}
 	}
 }
