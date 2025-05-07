@@ -48,42 +48,38 @@ void processReceivedPacket(const uint8_t* packet, uint8_t packetSize) {
         // === Position Commands ===
         case MainCommand::READ_POSITION_RANGE: {
             Debug::infoln("RPR received");
-            if (PACKET_UTILS::isSystemStateFault());
-            else {
-                handleReadPositionRange(packet, packetSize);
-            }
+            if (PACKET_UTILS::isSystemStateFault()) return;
+            
+            handleReadPositionRange(packet, packetSize);
             break;
         }
             
         case MainCommand::WRITE_POSITION_RANGE: {
             Debug::infoln("WPR received");
-            if (PACKET_UTILS::isSystemStateFault());
-            else {
-                handleWritePositionRange(packet, packetSize);
-            }
+            if (PACKET_UTILS::isSystemStateFault()) return;
+
+            handleWritePositionRange(packet, packetSize);
             break;
         }
 
         case MainCommand::STOP_MOVEMENT: {
             Debug::infoln("SM received");
 
-            if (PACKET_UTILS::isSystemStateFault());
-            else {
-                float tempPositions[Shared::servoManager.getDXLAmount()];
-                Shared::currentPositions.Get(tempPositions, Shared::servoManager.getDXLAmount());
-                Shared::goalPositions.Set(tempPositions, Shared::servoManager.getDXLAmount());
-                sendACK(command);
-            }
+            if (PACKET_UTILS::isSystemStateFault()) return;
+            
+            float tempPositions[Shared::servoManager.getDXLAmount()];
+            Shared::currentPositions.Get(tempPositions, Shared::servoManager.getDXLAmount());
+            Shared::goalPositions.Set(tempPositions, Shared::servoManager.getDXLAmount());
+            sendACK(command);
             break;
         }
         
         // === Velocity Commands ===
         case MainCommand::WRITE_VELOCITY_RANGE: {
             Debug::infoln("WVR received");
-            if (PACKET_UTILS::isSystemStateFault());
-            else {
-                handleWriteVelocityRange(packet, packetSize);
-            }
+            if (PACKET_UTILS::isSystemStateFault()) return;
+
+            handleWriteVelocityRange(packet, packetSize);
             break;
         }
         

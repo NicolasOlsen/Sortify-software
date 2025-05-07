@@ -91,10 +91,10 @@ bool isSystemStateFault() {
         systemState == StatusCode::FAULT_RUNTIME) {
         Debug::warnln("System is in fault mode");
         UART_COMM::sendNACK(ComErrorCode::SYSTEM_FAULT);
-        return false;
+        return true;
     }
 
-    return true;
+    return false;
 }
 
 }
