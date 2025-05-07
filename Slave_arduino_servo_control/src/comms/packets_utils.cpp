@@ -78,10 +78,22 @@ bool packetExpectedSize(uint8_t packetSize, uint8_t expectedSize) {
         #ifdef DEBUG
             Debug::errorln("Packet is less than expected size, expected " + 
                 String(expectedSize) + " got " + String(packetSize));
-            UART_COMM::sendNACK(ComErrorCode::INVALID_PAYLOAD_SIZE);
         #endif
+        UART_COMM::sendNACK(ComErrorCode::INVALID_PAYLOAD_SIZE);
         return false;
     }
+    return true;
+}
+
+bool isSystemStateValid() {
+    auto systemState = Shared::systemState.Get();
+    if (systemState == StatusCode::FAULT_INIT ||
+        systemState == StatusCode::FAULT_RUNTIME) {
+        Debug::warnln("System is in fault mode");
+        UART_COMM::sendNACK(ComErrorCode::SYSTEM_FAULT);
+        return false;
+    }
+
     return true;
 }
 

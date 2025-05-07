@@ -42,20 +42,28 @@ static void TaskServoSetter(void *pvParameters) {
 		}
 
 		#ifdef TIMING_MODE
-            uint32_t duration = micros() - startMicros;
-            commTiming.update(duration);
-        
-            if (commTiming.runCount >= TIMING_SAMPLE_COUNT) {
-                commTiming.printTimingStats("Setter");
-                commTiming.reset();
+			uint32_t duration = micros() - startMicros;
+			commTiming.update(duration);
 
-                // Long delay to simulate less frequent task execution in TIMING_MODE
-                vTaskDelayUntil(&lastWakeTime, pdMS_TO_TICKS(TIMING_DELAY_TASKS));
-            }
-        #else
-            // Wait until the next period
-			vTaskDelayUntil(&lastWakeTime, SET_TASK.period);
-        #endif
+			#ifdef INDIVIDUAL_TIMING_MODE
+				if (commTiming.runCount >= TIMING_SAMPLE_COUNT) {
+					commTiming.printTimingStats("Setter");
+					commTiming.reset();
+					vTaskDelayUntil(&lastWakeTime, pdMS_TO_TICKS(TIMING_DELAY_TASKS));
+				}
+			#else
+				if (commTiming.runCount >= TIMING_SAMPLE_COUNT) {
+					commTiming.printTimingStats("Setter");
+					commTiming.reset();
+				}
+		
+				vTaskDelayUntil(&lastWakeTime, SET_TASK.period);  // Regular periodic delay
+			#endif
+		
+		#else
+			vTaskDelayUntil(&lastWakeTime, SET_TASK.period);      // Not in timing mode at all
+		#endif
+        
 	}
 }
 

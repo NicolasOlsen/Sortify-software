@@ -77,20 +77,28 @@ static void TaskServoReader(void *pvParameters) {
 		}
 
 		#ifdef TIMING_MODE
-            uint32_t duration = micros() - startMicros;
-            commTiming.update(duration);
-        
-            if (commTiming.runCount >= TIMING_SAMPLE_COUNT) {
-                commTiming.printTimingStats("Reader");
-                commTiming.reset();
+			uint32_t duration = micros() - startMicros;
+			commTiming.update(duration);
 
-                // Long delay to simulate less frequent task execution in TIMING_MODE
-                vTaskDelayUntil(&lastWakeTime, pdMS_TO_TICKS(TIMING_DELAY_TASKS));
-            }
-        #else
-            // Wait until the next period
-			vTaskDelayUntil(&lastWakeTime, READ_TASK.period);
-        #endif
+			#ifdef INDIVIDUAL_TIMING_MODE
+				if (commTiming.runCount >= TIMING_SAMPLE_COUNT) {
+					commTiming.printTimingStats("Reader");
+					commTiming.reset();
+					vTaskDelayUntil(&lastWakeTime, pdMS_TO_TICKS(TIMING_DELAY_TASKS));
+				}
+			#else
+				if (commTiming.runCount >= TIMING_SAMPLE_COUNT) {
+					commTiming.printTimingStats("Reader");
+					commTiming.reset();
+				}
+		
+				vTaskDelayUntil(&lastWakeTime, READ_TASK.period);  // Regular periodic delay
+			#endif
+		
+		#else
+			vTaskDelayUntil(&lastWakeTime, READ_TASK.period);      // Not in timing mode at all
+		#endif
+        
 	}
 }
 

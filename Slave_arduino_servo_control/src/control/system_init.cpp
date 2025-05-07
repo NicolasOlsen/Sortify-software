@@ -16,8 +16,15 @@ void InitSystem() {
     StatusCode tempStatus = StatusCode::INITIALIZING;
 
     Shared::systemState.Set(tempStatus);
-    Debug::init(BAUDRATE_COMM);
-    Debug::infoln("Initializing");
+
+    #ifdef DEBUG
+        Debug::init(BAUDRATE_COMM);
+        Debug::infoln("Initializing");
+    #endif
+
+    #ifdef TIMING_MODE
+        TIMING_SERIAL.begin(TIMING_BAUD);
+    #endif
 
     UART_COMM::UART_init(BAUDRATE_COMM);
 

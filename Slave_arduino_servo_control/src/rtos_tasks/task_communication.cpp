@@ -43,17 +43,26 @@ static void TaskCommunication(void *pvParameters) {
         #ifdef TIMING_MODE
             uint32_t duration = micros() - startMicros;
             commTiming.update(duration);
+    
+            #ifdef INDIVIDUAL_TIMING_MODE
+                if (commTiming.runCount >= TIMING_SAMPLE_COUNT) {
+                    commTiming.printTimingStats("Comm");
+                    commTiming.reset();
+                    vTaskDelayUntil(&lastWakeTime, pdMS_TO_TICKS(TIMING_DELAY_TASKS));
+                }
+            #else
+                if (commTiming.runCount >= TIMING_SAMPLE_COUNT) {
+                    commTiming.printTimingStats("Comm");
+                    commTiming.reset();
+                }
         
-            if (commTiming.runCount >= TIMING_SAMPLE_COUNT) {
-                commTiming.printTimingStats("Comm");
-                commTiming.reset();
-
-                // Long delay to simulate less frequent task execution in TIMING_MODE
-                vTaskDelayUntil(&lastWakeTime, pdMS_TO_TICKS(TIMING_DELAY_TASKS));
-            }
+                vTaskDelayUntil(&lastWakeTime, COMM_TASK.period);  // Regular periodic delay
+            #endif
+        
         #else
-            vTaskDelayUntil(&lastWakeTime, COMM_TASK.period);  // Keeps execution periodic
+            vTaskDelayUntil(&lastWakeTime, COMM_TASK.period);      // Not in timing mode at all
         #endif
+    
     }
 }
 

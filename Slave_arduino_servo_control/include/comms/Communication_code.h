@@ -42,6 +42,7 @@ namespace COMM_CODE {
         COMM_TIMEOUT,               // Timeout waiting for full packet
         CHECKSUM_ERROR,             // CRC16 mismatch
         UNKNOWN_COMMAND,            // Unrecognized command byte
+        INVALID_PAYLOAD_SIZE,       // The payload size is invalid
         BUFFER_OVERFLOW,            // Packet too large for buffer
         QUEUE_FULL,                 // FreeRTOS queue full
         ID_OUT_OF_RANGE,            // The requested id is out of range

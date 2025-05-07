@@ -62,10 +62,11 @@ class ComErrorCode(Enum):
 	COMM_TIMEOUT = 0x02
 	CHECKSUM_ERROR = 0x03
 	UNKNOWN_COMMAND = 0x04
-	BUFFER_OVERFLOW = 0x05
-	QUEUE_FULL = 0x06
-	ID_OUT_OF_RANGE = 0x07
-	POSITION_OUT_OF_RANGE = 0x08
+	INVALID_PAYLOAD_SIZE = 0x05
+	BUFFER_OVERFLOW = 0x06
+	QUEUE_FULL = 0x07
+	ID_OUT_OF_RANGE = 0x08
+	POSITION_OUT_OF_RANGE = 0x09
 
 	def __str__(self):
 		return self.name
@@ -188,6 +189,7 @@ class MasterUART:
 			if raw:
 				result = self._parse_packet(raw)
 				if result.crc_ok:
+					logger.info(f"[RECEIVED] {raw.hex(' ')}")
 					return result
 				else:
 					logger.warning(f"CRC failed on attempt {attempt + 1}")

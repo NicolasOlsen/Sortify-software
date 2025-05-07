@@ -18,9 +18,16 @@
 #define DEBUG_SERIAL Serial
 
 // === Timing settings ===
-#define TIMING_SERIAL Serial1
-#define TIMING_SAMPLE_COUNT 100
+#define TIMING_SERIAL Serial2
+#define TIMING_BAUD 1000000
+#define TIMING_SAMPLE_COUNT 1000
 
-#define TIMING_DELAY_TASKS 0
+// Used for timing individuall tasks, comment to turn on/off
+// #define INDIVIDUAL_TIMING_MODE
+#define TIMING_DELAY_TASKS 1000000
+
+#if defined(INDIVIDUAL_TIMING_MODE) && !defined(TIMING_MODE)
+    #error "INDIVIDUAL_TIMING_MODE requires TIMING_MODE to be enabled"
+#endif
 
 #endif // PROJECT_CONFIG_H

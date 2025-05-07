@@ -48,26 +48,26 @@ void processReceivedPacket(const uint8_t* packet, uint8_t packetSize) {
         // === Position Commands ===
         case MainCommand::READ_POSITION_RANGE: {
             Debug::infoln("RPR received");
-            handleReadPositionRange(packet, packetSize);
+            if (PACKET_UTILS::isSystemStateValid());
+            else {
+                handleReadPositionRange(packet, packetSize);
+            }
             break;
         }
             
         case MainCommand::WRITE_POSITION_RANGE: {
             Debug::infoln("WPR received");
-            handleWritePositionRange(packet, packetSize);
+            if (PACKET_UTILS::isSystemStateValid());
+            else {
+                handleWritePositionRange(packet, packetSize);
+            }
             break;
         }
 
         case MainCommand::STOP_MOVEMENT: {
             Debug::infoln("SM received");
 
-            auto systemState = Shared::systemState.Get();
-            if (systemState == StatusCode::FAULT_INIT ||
-                systemState == StatusCode::FAULT_RUNTIME) {
-                Debug::warnln("System is in fault mode");
-                UART_COMM::sendNACK(ComErrorCode::SYSTEM_FAULT);
-                return;
-            }
+            if (PACKET_UTILS::isSystemStateValid());
             else {
                 float tempPositions[Shared::servoManager.getDXLAmount()];
                 Shared::currentPositions.Get(tempPositions, Shared::servoManager.getDXLAmount());
@@ -80,7 +80,10 @@ void processReceivedPacket(const uint8_t* packet, uint8_t packetSize) {
         // === Velocity Commands ===
         case MainCommand::WRITE_VELOCITY_RANGE: {
             Debug::infoln("WVR received");
-            handleWriteVelocityRange(packet, packetSize);
+            if (PACKET_UTILS::isSystemStateValid());
+            else {
+                handleWriteVelocityRange(packet, packetSize);
+            }
             break;
         }
         
@@ -166,14 +169,6 @@ void handleWriteRangeTemplate(SharedArray<T, SIZE>& target, const uint8_t* packe
     }
 
     T values[SIZE];
-
-    auto systemState = Shared::systemState.Get();
-    if (systemState == StatusCode::FAULT_INIT ||
-        systemState == StatusCode::FAULT_RUNTIME) {
-        Debug::warnln("System is in fault mode");
-        UART_COMM::sendNACK(ComErrorCode::SYSTEM_FAULT);
-        return;
-    }
 
     PACKET_UTILS::convertBytesToTypedArray<T>(&packet[PAYLOAD_INDEX + rangeMetaSize], count, values);
 

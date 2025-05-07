@@ -58,6 +58,13 @@ uint16_t calculateCRC16(const uint8_t* packet, uint8_t packetSize);
  */
 bool packetExpectedSize(uint8_t packetSize, uint8_t expectedSize);
 
+/**
+ * @brief Checks if the system state is in a fault state
+ * 
+ * @return True if the system is in a non fault state, false if it is in a fault state;
+ */
+bool isSystemStateValid();
+
 }
 
 #endif
