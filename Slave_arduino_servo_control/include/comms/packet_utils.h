@@ -63,7 +63,7 @@ bool packetExpectedSize(uint8_t packetSize, uint8_t expectedSize);
  * 
  * @return True if the system is in a non fault state, false if it is in a fault state;
  */
-bool isSystemStateValid();
+bool isSystemStateFault();
 
 }
 

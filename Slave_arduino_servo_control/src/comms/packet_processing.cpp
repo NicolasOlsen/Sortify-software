@@ -48,7 +48,7 @@ void processReceivedPacket(const uint8_t* packet, uint8_t packetSize) {
         // === Position Commands ===
         case MainCommand::READ_POSITION_RANGE: {
             Debug::infoln("RPR received");
-            if (PACKET_UTILS::isSystemStateValid());
+            if (PACKET_UTILS::isSystemStateFault());
             else {
                 handleReadPositionRange(packet, packetSize);
             }
@@ -57,7 +57,7 @@ void processReceivedPacket(const uint8_t* packet, uint8_t packetSize) {
             
         case MainCommand::WRITE_POSITION_RANGE: {
             Debug::infoln("WPR received");
-            if (PACKET_UTILS::isSystemStateValid());
+            if (PACKET_UTILS::isSystemStateFault());
             else {
                 handleWritePositionRange(packet, packetSize);
             }
@@ -67,7 +67,7 @@ void processReceivedPacket(const uint8_t* packet, uint8_t packetSize) {
         case MainCommand::STOP_MOVEMENT: {
             Debug::infoln("SM received");
 
-            if (PACKET_UTILS::isSystemStateValid());
+            if (PACKET_UTILS::isSystemStateFault());
             else {
                 float tempPositions[Shared::servoManager.getDXLAmount()];
                 Shared::currentPositions.Get(tempPositions, Shared::servoManager.getDXLAmount());
@@ -80,7 +80,7 @@ void processReceivedPacket(const uint8_t* packet, uint8_t packetSize) {
         // === Velocity Commands ===
         case MainCommand::WRITE_VELOCITY_RANGE: {
             Debug::infoln("WVR received");
-            if (PACKET_UTILS::isSystemStateValid());
+            if (PACKET_UTILS::isSystemStateFault());
             else {
                 handleWriteVelocityRange(packet, packetSize);
             }

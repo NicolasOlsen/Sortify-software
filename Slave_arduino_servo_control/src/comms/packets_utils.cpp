@@ -85,7 +85,7 @@ bool packetExpectedSize(uint8_t packetSize, uint8_t expectedSize) {
     return true;
 }
 
-bool isSystemStateValid() {
+bool isSystemStateFault() {
     auto systemState = Shared::systemState.Get();
     if (systemState == StatusCode::FAULT_INIT ||
         systemState == StatusCode::FAULT_RUNTIME) {
