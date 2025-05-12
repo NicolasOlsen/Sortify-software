@@ -3,7 +3,7 @@ import logging
 import time
 
 # Optional: Enable debug-level logging
-logging.basicConfig(level=logging.INFO)
+# logging.basicConfig(level=logging.INFO)
 
 
 def print_result(name, response):
@@ -24,23 +24,23 @@ def main():
 
 	try:
 		# PING
-		print_result("PING", uart.ping())
+		# print_result("PING", uart.ping())
 
 		# result = uart._send_command(9)
 		# print_result("PING", uart._to_comm_response(result, 9))
 
 		# # Write velocities to servos 0-4
-		# print_result("WRITE_VELOCITY_RANGE", uart.write_velocity_range(0, [30, 30, 30, 30]))
+		# print_result("WRITE_VELOCITY_RANGE", uart.write_velocity_range(0, [30, 30]))
 
 		# # Write positions to servos 0-4
-		print_result("WRITE_POSITION_RANGE", uart.write_position_range(0, [180, 180]))
+		# print_result("WRITE_POSITION_RANGE", uart.write_position_range(0, [180, 170, 180, 180, 100]))
 
 		# Read positions back from servos 0-4
-		# print_result("READ_POSITION_RANGE", uart.read_position_range(0, 2))
+		# print_result("READ_POSITION_RANGE", uart.read_position_range(0, 5))
 
 		# Read error codes from servos 0-4
-		# print_result("READ_CURRENT_ERROR_RANGE", uart.read_current_error_range(0, 4))
-		# print_result("READ_LAST_ERROR_RANGE", uart.read_last_error_range(0, 4))
+		# print_result("READ_CURRENT_ERROR_RANGE", uart.read_current_error_range(0, 2))
+		print_result("READ_LAST_ERROR_RANGE", uart.read_last_error_range(0, 2))
 
 		# time.sleep(1.5)
 

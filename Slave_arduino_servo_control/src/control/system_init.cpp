@@ -54,23 +54,21 @@ void InitSystem() {
         Shared::servoManager.getDXLAmount());
 
     // Save the real positions of the servos if there was succesfull initalising
-    float tempCurrentPosition[TOTAL_SERVO_COUNT];
-    for (uint8_t id = 0; id < TOTAL_SERVO_COUNT; id++) {
-        if (id < Shared::servoManager.getDXLAmount()) {
-            if (tempErrors[id] == DXL_LIB_OK) {
-                tempCurrentPosition[id] = Shared::servoManager.getCurrentPosition(id);
-            }
-            else {
-                tempCurrentPosition[id] = DEFAULT_SERVO_POSITIONS[id];
-            }
-        }
-        else {
-            tempCurrentPosition[id] = DEFAULT_SERVO_POSITIONS[id];
-        }            
+    if (tempStatus == StatusCode::FAULT_INIT) {
+        Shared::currentPositions.Set(DEFAULT_SERVO_POSITIONS, TOTAL_SERVO_COUNT);
     }
+    else {
+        float tempCurrentPosition[TOTAL_SERVO_COUNT];
+        for (uint8_t id = 0; id < TOTAL_SERVO_COUNT; id++) {
+            if (id < Shared::servoManager.getDXLAmount()) {
+                if (tempErrors[id] == DXL_LIB_OK) {
+                    tempCurrentPosition[id] = Shared::servoManager.getCurrentPosition(id);
+                }
+            }          
+        }
 
-    Shared::currentPositions.Set(tempCurrentPosition, TOTAL_SERVO_COUNT);
-
+        Shared::currentPositions.Set(tempCurrentPosition, TOTAL_SERVO_COUNT);
+    }
 
     Shared::goalVelocities.Set(DEFAULT_SERVO_VELOCITIES, DXL_SERVO_COUNT);
     Shared::goalPositions.Set(DEFAULT_SERVO_POSITIONS, TOTAL_SERVO_COUNT);

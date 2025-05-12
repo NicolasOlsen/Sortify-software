@@ -40,10 +40,10 @@ class CommandCode(Enum):
 	READ_LAST_ERROR_RANGE  		= 0x08
 
 	# Internal / Meta
-	COMMAND_RESPONSE        = 0xF0
-	BAD_CRC                 = 0xF1
-	TIMEOUT                 = 0xF2
-	UNKNOWN                 = 0xFF
+	UNKNOWN_COMMAND_RESPONSE 	= 0xF0
+	BAD_CRC                		= 0xF1
+	TIMEOUT                 	= 0xF2
+	UNKNOWN                 	= 0xFF
 
 
 class SystemStatus(Enum):
@@ -109,7 +109,7 @@ class MasterUART:
 	- Constructing and sending command packets
 	- Waiting for and parsing structured response packets
 	- Error checking (CRC and timeouts)
-	- Providing high-level APIs for specific robot actions
+	- Providing high-level APIs for specific robotarm actions
 
 	Attributes:
 		ser (serial.Serial): The serial interface.
@@ -154,7 +154,7 @@ class MasterUART:
 			bytes: Fully constructed packet ready to send.
 		"""
 		body = bytearray()
-		body.append(len(payload) + 4)  # len = command(1) + payload + system_status(1) + CRC(2)
+		body.append(len(payload) + 4)  # len = length (1) + command(1) + payload + CRC(2)
 		body.append(command)
 		body.extend(payload)
 
@@ -273,7 +273,7 @@ class MasterUART:
 		try:
 			system_status = SystemStatus(status_code)
 		except ValueError:
-			system_status = SystemStatus.FAULT
+			system_status = SystemStatus.NO_CONTACT
 
 		payload = packet[start_len + 2:-3]
 
@@ -296,7 +296,7 @@ class MasterUART:
 		try:
 			packet_type = CommandCode(command)
 		except ValueError:
-			packet_type = CommandCode.COMMAND_RESPONSE
+			packet_type = CommandCode.UNKNOWN_COMMAND_RESPONSE
 			logger.warning(f"Unknown command code: 0x{command:02X}")
 
 		return ParsedPacketResult(
@@ -308,6 +308,22 @@ class MasterUART:
 		)
 	
 	def _to_comm_response(self, result: ParsedPacketResult, expected_type: CommandCode, unpack_fmt: Optional[str] = None) -> CommResponse:
+		"""
+		Converts a ParsedPacketResult into a high-level CommResponse object.
+
+		This function handles:
+		- Decoding NACK responses and mapping their payload to ComErrorCode.
+		- Checking CRC validity and ensuring the response type matches the expected type.
+		- Optionally unpacking binary payload data using struct format.
+
+		Args:
+			result (ParsedPacketResult): The raw parsed packet to interpret.
+			expected_type (CommandCode): The expected command type the response must match.
+			unpack_fmt (str, optional): struct format string for unpacking the payload (e.g. 'f' or 'I').
+
+		Returns:
+			CommResponse: A structured result indicating success, payload data or error code, and system status.
+		"""
 		# FIRST handle NACK
 		if result.packet_type == CommandCode.NACK:
 			if result.payload:
