@@ -85,8 +85,8 @@ void sendPrevPacket() {
     }
 }
 
-void sendACK() {
-    sendPacket(MainCommand::ACK, nullptr, 0);
+void sendACK(MainCommand command) {
+    sendPacket(command, nullptr, 0);
 }
 
 void sendNACK(ComErrorCode error) {

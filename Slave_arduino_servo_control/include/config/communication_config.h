@@ -12,7 +12,7 @@ constexpr uint16_t QUEUE_SIZE = 4; // Holds up to 4 full packets
 
 // === Packet Format ===
 constexpr uint8_t UART_BUFFER_SIZE = 128;
-constexpr uint8_t PACKET_TIMEOUT = 100; // ms
+constexpr uint8_t PACKET_TIMEOUT = 30; // ms
 constexpr uint8_t START_BYTES[] = { 0xAA, 0x55 };
 constexpr uint8_t START_BYTES_SIZE = sizeof(START_BYTES);
 static_assert(START_BYTES_SIZE > 0, "START_BYTES_SIZE must be greater than 0");

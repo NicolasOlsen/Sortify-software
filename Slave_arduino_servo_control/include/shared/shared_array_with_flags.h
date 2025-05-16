@@ -1,5 +1,5 @@
-#ifndef SHARED_SERVO_DATA_H
-#define SHARED_SERVO_DATA_H
+#ifndef SHARED_ARRAY_WITH_FLAGS_H
+#define SHARED_ARRAY_WITH_FLAGS_H
 
 #include <stdint.h>
 #include <DynamixelShield.h>
@@ -14,7 +14,7 @@
  * @tparam size The number of elements in the array.
  */
 template <typename T, uint8_t size>
-class SharedServoData
+class SharedArrayWithFlags
 {
 private:
     T arr_m[size] = {};
@@ -25,7 +25,7 @@ public:
     /**
      * @brief Initializes the shared data container and creates its mutex.
      */
-    SharedServoData();
+    SharedArrayWithFlags();
 
     /**
      * @brief Retrieves the data for a given servo with mutex protection.
@@ -44,7 +44,7 @@ public:
      * @param start_index Starting index in the internal data array (default: 0).
      * @param changeFlag  If true, the update flags for the copied elements will be cleared.
      */
-    void Get(T* arr, uint8_t size_, uint8_t start_index = 0, bool changeFlag = false);
+    void Get(T* arr, uint8_t size_ = size, uint8_t start_index = 0, bool changeFlag = false);
 
     /**
      * @brief Sets the data for a given servo with mutex protection.
@@ -63,7 +63,7 @@ public:
      * @param start_index Starting index in the internal array to begin writing (default: 0).
      * @param changeFlag  If true, the updated flags for the affected entries will be set.
      */
-    void Set(const T* arr, uint8_t size_, uint8_t start_index = 0, bool changeFlag = true);
+    void Set(const T* arr, uint8_t size_ = size, uint8_t start_index = 0, bool changeFlag = true);
 
     /**
      * @brief Gets the updated flag for a given servo with mutex protection.
@@ -74,16 +74,6 @@ public:
     bool GetFlag(uint8_t id) const;
 
     /**
-     * @brief Gets a range of update flags with mutex protection.
-     * 
-     * @param out         The output array to fill with flags.
-     * @param size_       Number of flags to retrieve.
-     * @param start_index Index to start reading from.
-     */
-    void GetFlags(bool* out, uint8_t size_, uint8_t start_index = 0) const;
-
-
-    /**
      * @brief Sets the updated flag for a given servo with mutex protection.
      * 
      * @param id   The ID of the servo. If the ID is invalid (out of range), the operation is ignored.
@@ -92,13 +82,22 @@ public:
     void SetFlag(uint8_t id, bool flag);
 
     /**
+     * @brief Gets a range of update flags with mutex protection.
+     * 
+     * @param out         The output array to fill with flags.
+     * @param size_       Number of flags to retrieve.
+     * @param start_index Index to start reading from.
+     */
+    void GetFlags(bool* out, uint8_t size_ = size, uint8_t start_index = 0) const;
+
+    /**
      * @brief Sets a range of update flags for the servo data with mutex protection.
      * 
      * @param flags        Pointer to an array of boolean flag values to apply.
      * @param size_        Number of flag entries to write.
      * @param start_index  Starting index in the internal flag array (default: 0).
      */
-    void SetFlags(const bool* flags, uint8_t size_, uint8_t start_index = 0);
+    void SetFlags(const bool* flags, uint8_t size_ = size, uint8_t start_index = 0);
 
     /**
      * @brief Sets the all the flags the servos, with mutex protection.
@@ -110,13 +109,13 @@ public:
 
 
 template <typename T, uint8_t size>
-SharedServoData<T, size>::SharedServoData() {
+SharedArrayWithFlags<T, size>::SharedArrayWithFlags() {
     mutex = xSemaphoreCreateMutex();
 }
 
 
 template <typename T, uint8_t size>
-T SharedServoData<T, size>::Get(uint8_t id, bool changeFlag) {
+T SharedArrayWithFlags<T, size>::Get(uint8_t id, bool changeFlag) {
     T data = {};     // Safe default
     if (id >= size) return data;
 
@@ -135,7 +134,7 @@ T SharedServoData<T, size>::Get(uint8_t id, bool changeFlag) {
 }
 
 template <typename T, uint8_t size>
-void SharedServoData<T, size>::Get(T* arr, uint8_t size_, uint8_t start_index, bool changeFlag) {
+void SharedArrayWithFlags<T, size>::Get(T* arr, uint8_t size_, uint8_t start_index, bool changeFlag) {
     if (start_index + size_ > size) {
         Debug::errorln("Tried to go out of range in get sharedData");
         return;
@@ -156,7 +155,7 @@ void SharedServoData<T, size>::Get(T* arr, uint8_t size_, uint8_t start_index, b
 }
 
 template <typename T, uint8_t size>
-void SharedServoData<T, size>::Set(uint8_t id, T data, bool changeFlag) {
+void SharedArrayWithFlags<T, size>::Set(uint8_t id, T data, bool changeFlag) {
     if (id >= size) return;
 
     ScopedLock lock(mutex);
@@ -170,7 +169,7 @@ void SharedServoData<T, size>::Set(uint8_t id, T data, bool changeFlag) {
 }
 
 template <typename T, uint8_t size>
-void SharedServoData<T, size>::Set(const T* arr, uint8_t size_, uint8_t start_index, bool changeFlag) {
+void SharedArrayWithFlags<T, size>::Set(const T* arr, uint8_t size_, uint8_t start_index, bool changeFlag) {
     if (start_index + size_ > size) {
         Debug::errorln("Tried to go out of range in set sharedData");
         return;
@@ -190,7 +189,7 @@ void SharedServoData<T, size>::Set(const T* arr, uint8_t size_, uint8_t start_in
 }
 
 template <typename T, uint8_t size>
-bool SharedServoData<T, size>::GetFlag(uint8_t id) const{
+bool SharedArrayWithFlags<T, size>::GetFlag(uint8_t id) const{
     bool flag = false;
     if (id >= size) return flag;
 
@@ -204,7 +203,7 @@ bool SharedServoData<T, size>::GetFlag(uint8_t id) const{
 }
 
 template <typename T, uint8_t size>
-void SharedServoData<T, size>::GetFlags(bool* out, uint8_t size_, uint8_t start_index) const {
+void SharedArrayWithFlags<T, size>::GetFlags(bool* out, uint8_t size_, uint8_t start_index) const {
     if (start_index + size_ > size) {
         Debug::errorln("Tried to go out of range in GetFlags");
         return;
@@ -219,7 +218,7 @@ void SharedServoData<T, size>::GetFlags(bool* out, uint8_t size_, uint8_t start_
 }
 
 template <typename T, uint8_t size>
-void SharedServoData<T, size>::SetFlag(uint8_t id, bool flag) {
+void SharedArrayWithFlags<T, size>::SetFlag(uint8_t id, bool flag) {
     if (id >= size) return;
 
     ScopedLock lock(mutex);
@@ -230,7 +229,7 @@ void SharedServoData<T, size>::SetFlag(uint8_t id, bool flag) {
 }
 
 template <typename T, uint8_t size>
-void SharedServoData<T, size>::SetFlags(const bool* flags, uint8_t size_, uint8_t start_index) {
+void SharedArrayWithFlags<T, size>::SetFlags(const bool* flags, uint8_t size_, uint8_t start_index) {
     if (start_index + size_ > size) {
         Debug::errorln("Tried to go out of range in setFlags sharedData");
         return;
@@ -246,7 +245,7 @@ void SharedServoData<T, size>::SetFlags(const bool* flags, uint8_t size_, uint8_
 }
 
 template <typename T, uint8_t size>
-void SharedServoData<T, size>::SetAllFlags(bool flag) {
+void SharedArrayWithFlags<T, size>::SetAllFlags(bool flag) {
     ScopedLock lock(mutex);
     if (lock.isLocked()) {
         for (uint8_t i = 0; i < size; ++i) {

@@ -58,6 +58,7 @@ void receiveUARTData() {
                     }
                 } else {
                     // Sync error: reset sync state
+                    resetState();
                     #ifdef DEBUG
                         if (localIndex > 0) {
                             Debug::printHex(localBuffer, localIndex);
@@ -66,7 +67,6 @@ void receiveUARTData() {
                         Debug::warn("Out of sync. Unexpected byte: 0x");
                         Debug::printHex(incomingByte);
                         Debug::print("\n");
-                        localIndex = 0;
                     #endif
                 }
                 break;

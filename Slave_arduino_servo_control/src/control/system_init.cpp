@@ -5,7 +5,6 @@
 
 #include "config/servo_config.h"
 #include "config/communication_config.h"
-#include "control/servo_control.h"
 #include "comms/uart_receive.h"
 #include "shared/shared_objects.h"
 
@@ -14,20 +13,31 @@
 using namespace COMM_CODE;
 
 void InitSystem() {
-    Shared::systemState.Set(StatusCode::INITIALIZING);
-    Debug::init(BAUDRATE_COMM);
-    Debug::infoln("Initializing");
+    StatusCode tempStatus = StatusCode::INITIALIZING;
+
+    Shared::systemState.Set(tempStatus);
+
+    #ifdef DEBUG
+        Debug::init(BAUDRATE_COMM);
+        Debug::infoln("Initializing");
+    #endif
+
+    #ifdef TIMING_MODE
+        TIMING_SERIAL.begin(TIMING_BAUD);
+    #endif
 
     UART_COMM::UART_init(BAUDRATE_COMM);
 
-    if(!initServoLibraries()) {
-        Debug::errorln("Couldnt initiate");
-        // Shared::systemState.Set(StatusCode::FAULT);
+    if(!ServoManager<DXL_SERVO_COUNT, ANALOG_SERVO_COUNT>::initServoLibraries()) {
+        Debug::errorln("Initialization failed");
+        tempStatus = StatusCode::FAULT_INIT;
+        Shared::systemState.Set(tempStatus);
     }
 
     if(!Shared::servoManager.initAll()) {
         Debug::errorln("Some or all of the dxl servos couldnt initiate");
-        // Shared::systemState.Set(StatusCode::FAULT);
+        tempStatus = StatusCode::FAULT_INIT;
+        Shared::systemState.Set(tempStatus);
     }
 
     // Retrieve and store initialization error codes after initAll()
@@ -36,17 +46,41 @@ void InitSystem() {
     Shared::servoManager.getErrors(
         tempErrors, 
         Shared::servoManager.getDXLAmount());
-    Shared::servoErrors.Set(
+    Shared::currentErrors.Set(
+        tempErrors, 
+        Shared::servoManager.getDXLAmount());
+    Shared::lastErrors.Set(
         tempErrors, 
         Shared::servoManager.getDXLAmount());
 
+    // Save the real positions of the servos if there was succesfull initalising
+    if (tempStatus == StatusCode::FAULT_INIT) {
+        Shared::currentPositions.Set(DEFAULT_SERVO_POSITIONS, TOTAL_SERVO_COUNT);
+    }
+    else {
+        float tempCurrentPosition[TOTAL_SERVO_COUNT];
+        for (uint8_t id = 0; id < TOTAL_SERVO_COUNT; id++) {
+            if (id < Shared::servoManager.getDXLAmount()) {
+                if (tempErrors[id] == DXL_LIB_OK) {
+                    tempCurrentPosition[id] = Shared::servoManager.getCurrentPosition(id);
+                }
+            }          
+        }
 
-    Shared::goalPositions.Set(DEFAULT_SERVO_POSITIONS, TOTAL_SERVO_COUNT, 0, false);
+        Shared::currentPositions.Set(tempCurrentPosition, TOTAL_SERVO_COUNT);
+    }
 
-    if (Shared::systemState.Get() == StatusCode::FAULT) return;  // Return and the system is in fault mode
+    Shared::goalVelocities.Set(DEFAULT_SERVO_VELOCITIES, DXL_SERVO_COUNT);
+    Shared::goalPositions.Set(DEFAULT_SERVO_POSITIONS, TOTAL_SERVO_COUNT);
 
-    Shared::servoManager.setGoalPositions(DEFAULT_SERVO_POSITIONS, TOTAL_SERVO_COUNT);
+    // Putting set goal velocities here to prevent it from going normal speed, which is too fast
+    Shared::servoManager.setGoalVelocities(DEFAULT_SERVO_VELOCITIES);
 
-    Shared::systemState.Set(StatusCode::IDLE);    // System is initialized and idle
-    Debug::infoln("System initialized successfully");
+    if (tempStatus == StatusCode::FAULT_INIT) {
+        Debug::errorln("System is in FAULT_INIT mode");
+    } 
+    else {
+        Shared::systemState.Set(StatusCode::IDLE);    // System is initialized and idle
+        Debug::infoln("System initialized successfully");
+    }
 }

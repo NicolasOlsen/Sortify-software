@@ -8,7 +8,7 @@
 // File-local instance of the shared driver
 static Adafruit_PWMServoDriver pwmDriver = Adafruit_PWMServoDriver();
 
-bool initAnalogServoDriver() {
+bool AnalogServo::initAnalogServoDriver() {
     if (!pwmDriver.begin()) {
         Debug::errorln("Failed to initialize analog PWM driver");
         return false;

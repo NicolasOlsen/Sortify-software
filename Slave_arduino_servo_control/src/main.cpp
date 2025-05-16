@@ -9,15 +9,15 @@
 #include "rtos_tasks/task_think.h"
 
 void setup() {
-		InitSystem();
+	InitSystem();
 
-		// Start all tasks
-		createTaskCommunication();
-		// createTaskServoReader();
-		createTaskServoSetter();
-		// createTaskThink();
+	// Start all tasks
+	createTaskCommunication();
+	createTaskThink();
+	createTaskServoSetter();
+	createTaskServoReader();
 
-		vTaskStartScheduler();
+	vTaskStartScheduler();
 }
 
 void loop() {

@@ -24,25 +24,26 @@ from enum import Enum
 
 class CommandCode(Enum):
 	# Status and Control
-	HEARTBEAT       = 0x01
-	ACKNOWLEDGE     = 0x02
-	NACK            = 0x03
+	PING       		= 0x01
+	NACK            = 0x02
 
 	# Position
-	READ_POSITION_RANGE     = 0x04
-	WRITE_POSITION_RANGE    = 0x05
+	READ_POSITION_RANGE     = 0x03
+	WRITE_POSITION_RANGE    = 0x04
+	STOP_MOVEMENT			= 0x05
 
 	# Velocity
 	WRITE_VELOCITY_RANGE    = 0x06
 
 	# Error
-	READ_ERROR_RANGE        = 0x07
+	READ_CURRENT_ERROR_RANGE  	= 0x07
+	READ_LAST_ERROR_RANGE  		= 0x08
 
 	# Internal / Meta
-	COMMAND_RESPONSE        = 0xF0
-	BAD_CRC                 = 0xF1
-	TIMEOUT                 = 0xF2
-	UNKNOWN                 = 0xFF
+	UNKNOWN_COMMAND_RESPONSE 	= 0xF0
+	BAD_CRC                		= 0xF1
+	TIMEOUT                 	= 0xF2
+	UNKNOWN                 	= 0xFF
 
 
 class SystemStatus(Enum):
@@ -50,19 +51,22 @@ class SystemStatus(Enum):
 	INITIALIZING = 0x01
 	IDLE = 0x02
 	MOVING = 0x03
-	FAULT = 0x04
+	FAULT_INIT = 0x04
+	FAULT_RUNTIME = 0x05
 
 	def __str__(self):
 		return self.name
 
 class ComErrorCode(Enum):
-	COMM_TIMEOUT = 0x01
-	CHECKSUM_ERROR = 0x02
-	UNKNOWN_COMMAND = 0x03
-	BUFFER_OVERFLOW = 0x04
-	QUEUE_FULL = 0x05
-	INVALID_PAYLOAD_SIZE = 0x06
-	ID_OUT_OF_RANGE = 0x07
+	SYSTEM_FAULT = 0x01
+	COMM_TIMEOUT = 0x02
+	CHECKSUM_ERROR = 0x03
+	UNKNOWN_COMMAND = 0x04
+	INVALID_PAYLOAD_SIZE = 0x05
+	BUFFER_OVERFLOW = 0x06
+	QUEUE_FULL = 0x07
+	ID_OUT_OF_RANGE = 0x08
+	POSITION_OUT_OF_RANGE = 0x09
 
 	def __str__(self):
 		return self.name
@@ -105,7 +109,7 @@ class MasterUART:
 	- Constructing and sending command packets
 	- Waiting for and parsing structured response packets
 	- Error checking (CRC and timeouts)
-	- Providing high-level APIs for specific robot actions
+	- Providing high-level APIs for specific robotarm actions
 
 	Attributes:
 		ser (serial.Serial): The serial interface.
@@ -129,7 +133,7 @@ class MasterUART:
 		"""
 		self.ser = serial.Serial(port, baudrate=baudrate, timeout=timeout)
 		self.ser.setDTR(False)  # Prevent Arduino reset
-		time.sleep(2)  # Let Arduino boot
+		time.sleep(1)  # Let Arduino boot
 		self.ser.reset_input_buffer()
 		self.crc16 = CRC16()
 		self.START_BYTES = start_bytes
@@ -150,7 +154,7 @@ class MasterUART:
 			bytes: Fully constructed packet ready to send.
 		"""
 		body = bytearray()
-		body.append(len(payload) + 4)  # len = command(1) + payload + system_status(1) + CRC(2)
+		body.append(len(payload) + 4)  # len = length (1) + command(1) + payload + CRC(2)
 		body.append(command)
 		body.extend(payload)
 
@@ -176,6 +180,7 @@ class MasterUART:
 		self.last_packet = packet
 
 		for attempt in range(self.MAX_RETRIES):
+			self.ser.reset_input_buffer()
 			self.ser.write(packet)
 			logger.info(f"[SEND] {packet.hex(' ')} (Attempt {attempt + 1})")
 
@@ -184,6 +189,7 @@ class MasterUART:
 			if raw:
 				result = self._parse_packet(raw)
 				if result.crc_ok:
+					logger.info(f"[RECEIVED] {raw.hex(' ')}")
 					return result
 				else:
 					logger.warning(f"CRC failed on attempt {attempt + 1}")
@@ -267,7 +273,7 @@ class MasterUART:
 		try:
 			system_status = SystemStatus(status_code)
 		except ValueError:
-			system_status = SystemStatus.FAULT
+			system_status = SystemStatus.NO_CONTACT
 
 		payload = packet[start_len + 2:-3]
 
@@ -287,17 +293,10 @@ class MasterUART:
 				crc_ok=True
 			)
 
-		command_to_type = {
-			CommandCode.ACKNOWLEDGE.value: CommandCode.ACKNOWLEDGE,
-			CommandCode.NACK.value: CommandCode.NACK,
-			CommandCode.READ_POSITION_RANGE.value: CommandCode.READ_POSITION_RANGE,
-			CommandCode.READ_ERROR_RANGE.value: CommandCode.READ_ERROR_RANGE,
-		}
-
-		packet_type = command_to_type.get(command, CommandCode.COMMAND_RESPONSE)
-
-		# Log unknown command if unexpected
-		if packet_type == CommandCode.COMMAND_RESPONSE:
+		try:
+			packet_type = CommandCode(command)
+		except ValueError:
+			packet_type = CommandCode.UNKNOWN_COMMAND_RESPONSE
 			logger.warning(f"Unknown command code: 0x{command:02X}")
 
 		return ParsedPacketResult(
@@ -309,6 +308,22 @@ class MasterUART:
 		)
 	
 	def _to_comm_response(self, result: ParsedPacketResult, expected_type: CommandCode, unpack_fmt: Optional[str] = None) -> CommResponse:
+		"""
+		Converts a ParsedPacketResult into a high-level CommResponse object.
+
+		This function handles:
+		- Decoding NACK responses and mapping their payload to ComErrorCode.
+		- Checking CRC validity and ensuring the response type matches the expected type.
+		- Optionally unpacking binary payload data using struct format.
+
+		Args:
+			result (ParsedPacketResult): The raw parsed packet to interpret.
+			expected_type (CommandCode): The expected command type the response must match.
+			unpack_fmt (str, optional): struct format string for unpacking the payload (e.g. 'f' or 'I').
+
+		Returns:
+			CommResponse: A structured result indicating success, payload data or error code, and system status.
+		"""
 		# FIRST handle NACK
 		if result.packet_type == CommandCode.NACK:
 			if result.payload:
@@ -323,7 +338,7 @@ class MasterUART:
 			return CommResponse(False, error_enum, result.system_status)
 
 		# THEN check for CRC or unexpected command
-		if not result.crc_ok or result.command != expected_type.value:
+		if not result.crc_ok or result.packet_type != expected_type:
 			return CommResponse(False, result.packet_type, result.system_status)
 
 		# Otherwise, parse the payload
@@ -338,15 +353,15 @@ class MasterUART:
 
 	# High level API
 	
-	def heartbeat(self) -> CommResponse:
+	def ping(self) -> CommResponse:
 		"""
-		Sends a heartbeat command to verify Arduino is alive.
+		Sends a ping command to verify Arduino is alive.
 
 		Returns:
 			CommResponse: True if ACK received, else error type.
 		"""
-		result = self._send_command(CommandCode.HEARTBEAT.value)
-		return self._to_comm_response(result, CommandCode.ACKNOWLEDGE)
+		result = self._send_command(CommandCode.PING.value)
+		return self._to_comm_response(result, CommandCode.PING)
 
 	def write_position_range(self, start_id: int, values: list[float]) -> CommResponse:
 		"""
@@ -361,7 +376,7 @@ class MasterUART:
 		"""
 		payload = bytes([start_id, len(values)]) + struct.pack(f'<{len(values)}f', *values)
 		result = self._send_command(CommandCode.WRITE_POSITION_RANGE.value, payload)
-		return self._to_comm_response(result, CommandCode.ACKNOWLEDGE)
+		return self._to_comm_response(result, CommandCode.WRITE_POSITION_RANGE)
 
 	def read_position_range(self, start_id: int, count: int) -> CommResponse:
 		"""
@@ -377,6 +392,16 @@ class MasterUART:
 		payload = bytes([start_id, count])
 		result = self._send_command(CommandCode.READ_POSITION_RANGE.value, payload)
 		return self._to_comm_response(result, CommandCode.READ_POSITION_RANGE, unpack_fmt='f')
+	
+	def stop_movement(self) -> CommResponse:
+		"""
+		Sends a stop command to stop every smart servo.
+
+		Returns:
+			CommResponse: True if ACK received, else error type.
+		"""
+		result = self._send_command(CommandCode.STOP_MOVEMENT.value)
+		return self._to_comm_response(result, CommandCode.STOP_MOVEMENT)
 
 	def write_velocity_range(self, start_id: int, values: list[float]) -> CommResponse:
 		"""
@@ -391,11 +416,11 @@ class MasterUART:
 		"""
 		payload = bytes([start_id, len(values)]) + struct.pack(f'<{len(values)}f', *values)
 		result = self._send_command(CommandCode.WRITE_VELOCITY_RANGE.value, payload)
-		return self._to_comm_response(result, CommandCode.ACKNOWLEDGE)
+		return self._to_comm_response(result, CommandCode.WRITE_VELOCITY_RANGE)
 
-	def read_error_range(self, start_id: int, count: int) -> CommResponse:
+	def read_current_error_range(self, start_id: int, count: int) -> CommResponse:
 		"""
-		Requests error codes from a range of servos.
+		Requests current error codes from a range of servos.
 
 		Args:
 			start_id (int): Starting servo ID.
@@ -405,8 +430,23 @@ class MasterUART:
 			CommResponse: List of uint32 error flags or error.
 		"""
 		payload = bytes([start_id, count])
-		result = self._send_command(CommandCode.READ_ERROR_RANGE.value, payload)
-		return self._to_comm_response(result, CommandCode.READ_ERROR_RANGE, unpack_fmt='I')
+		result = self._send_command(CommandCode.READ_CURRENT_ERROR_RANGE.value, payload)
+		return self._to_comm_response(result, CommandCode.READ_CURRENT_ERROR_RANGE, unpack_fmt='I')
+	
+	def read_last_error_range(self, start_id: int, count: int) -> CommResponse:
+		"""
+		Requests last error codes from a range of servos.
+
+		Args:
+			start_id (int): Starting servo ID.
+			count (int): Number of servos to query.
+
+		Returns:
+			CommResponse: List of uint32 error flags or error.
+		"""
+		payload = bytes([start_id, count])
+		result = self._send_command(CommandCode.READ_LAST_ERROR_RANGE.value, payload)
+		return self._to_comm_response(result, CommandCode.READ_LAST_ERROR_RANGE, unpack_fmt='I')
 
 	def close(self):
 		self.ser.close()

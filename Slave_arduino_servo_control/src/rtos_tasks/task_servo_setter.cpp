@@ -5,7 +5,14 @@
 #include "config/task_config.h"
 #include "shared/shared_objects.h"
 
+#include "utils/task_timer.h"
 #include "utils/debug_utils.h"
+
+#ifdef TIMING_MODE
+    static TaskTimingStats commTiming;
+#endif
+
+using namespace COMM_CODE;
 
 static void TaskServoSetter(void *pvParameters) {
 	TickType_t lastWakeTime = xTaskGetTickCount();
@@ -13,30 +20,50 @@ static void TaskServoSetter(void *pvParameters) {
 	auto& manager = Shared::servoManager;
 
 	float tempGoalPositions[manager.getTotalAmount()];
+	float tempGoalVelocities[manager.getDXLAmount()];
 
 	Debug::infoln("[T_Setter] started");
-	
-	auto timer = millis();
 
 	for (;;) {
-		timer = millis();
-
 		Debug::infoln("[T_Setter]");
 
-		// Applies goal positions to servos only if their update flag is set.
-		// This avoids redundant communication with unchanged servos.
-		Shared::goalPositions.Get(tempGoalPositions, manager.getTotalAmount());
-		for (uint8_t id = 0; id < manager.getTotalAmount(); id++) {
-			if (Shared::goalPositions.GetFlag(id)) {
-				if (manager.setGoalPosition(id, tempGoalPositions[id])) {
-					Shared::goalPositions.SetFlag(id, false);
+		#ifdef TIMING_MODE
+			uint32_t startMicros = micros();
+		#endif
+
+		auto systemState = Shared::systemState.Get();
+		if (systemState != StatusCode::FAULT_INIT) {
+			// Safe to set servo goals even during runtime faults
+			Shared::goalVelocities.Get(tempGoalVelocities);
+			Shared::goalPositions.Get(tempGoalPositions);
+		
+			manager.setGoalVelocities(tempGoalVelocities);
+			manager.setGoalPositions(tempGoalPositions);  
+		}
+
+		#ifdef TIMING_MODE
+			uint32_t duration = micros() - startMicros;
+			commTiming.update(duration);
+
+			#ifdef INDIVIDUAL_TIMING_MODE
+				if (commTiming.runCount >= TIMING_SAMPLE_COUNT) {
+					commTiming.printTimingStats("Setter");
+					commTiming.reset();
+					vTaskDelayUntil(&lastWakeTime, pdMS_TO_TICKS(TIMING_DELAY_TASKS));
 				}
-			}
-		}    
-
-		Serial.println("Se Timer: " + String(millis() - timer));
-
-		vTaskDelayUntil(&lastWakeTime, SET_TASK.period);
+			#else
+				if (commTiming.runCount >= TIMING_SAMPLE_COUNT) {
+					commTiming.printTimingStats("Setter");
+					commTiming.reset();
+				}
+		
+				vTaskDelayUntil(&lastWakeTime, SET_TASK.period);  // Regular periodic delay
+			#endif
+		
+		#else
+			vTaskDelayUntil(&lastWakeTime, SET_TASK.period);      // Not in timing mode at all
+		#endif
+        
 	}
 }
 

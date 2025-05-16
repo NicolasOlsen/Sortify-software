@@ -9,40 +9,44 @@ namespace COMM_CODE {
     // The SBC sends these commands to request information or control the servos.
     enum class MainCommand : uint8_t {
         // Status and Health
-        HEARTBEAT       = 0x01,     // Master checks if Arduino is alive (Arduino responds with ACK)
-        ACK,                        // Generic ACK when no specific data is returned
-        NACK,                       // Negative Acknowledge, payload contains ComErrorCode
+        PING_ = 0x01,                 // Master checks if Arduino is alive (Arduino responds with PING + system state)
+        NACK,                        // Negative Acknowledge (command failed), payload = ComErrorCode
     
-        // Flexible Position Commands
-        READ_POSITION_RANGE,        // Read positions from [start_id, count]
-        WRITE_POSITION_RANGE,       // Write positions for [start_id, count]
-
-        // Flexible Velocity Command
-        WRITE_VELOCITY_RANGE,       // Write velocities for [start_id, count]
-
-        // Flexible Error Reporting
-        READ_ERROR_RANGE            // Read error status from [start_id, count]
-    };    
+        // Position Control
+        READ_POSITION_RANGE,        // Read current positions from [start_id, count]
+        WRITE_POSITION_RANGE,       // Set target positions for [start_id, count]
+        STOP_MOVEMENT,              // Immediately stops all servo movement
+    
+        // Velocity Control
+        WRITE_VELOCITY_RANGE,       // Set velocities for [start_id, count]
+    
+        // Error Reporting
+        READ_CURRENT_ERROR_RANGE,           // Read current error from [start_id, count]
+        READ_LAST_ERROR_RANGE       // Read last error from [start_id, count]
+    };       
 
     // System Status Codes
     // Arduino sends one of these status codes in response to REQUEST_STATUS.
     enum class StatusCode : uint8_t {
-        INITIALIZING = 0x01,    // System is booting up, not ready yet
-        IDLE,                   // Servos are idle
-        MOVING,                 // Servos are moving
-        FAULT,                  // System is in an error state and cannot recover (sends the number of errors)
+        INITIALIZING = 0x01,   // System is booting up, hardware not ready
+        IDLE,                  // System initialized and waiting for commands
+        MOVING,                // Servos are actively moving to target positions
+        FAULT_INIT,            // Initialization failure (e.g., servo not found, UART setup failed)
+        FAULT_RUNTIME          // Failure during operation (e.g., overheat, disconnection)
     };
 
     // Error Codes
     // These errors are reported with a NACK payload or in error reports.
     enum class ComErrorCode : uint8_t {
-        COMM_TIMEOUT = 0x01,        // Timeout waiting for full packet
+        SYSTEM_FAULT = 0x01,        // System is in fault mode
+        COMM_TIMEOUT,               // Timeout waiting for full packet
         CHECKSUM_ERROR,             // CRC16 mismatch
         UNKNOWN_COMMAND,            // Unrecognized command byte
+        INVALID_PAYLOAD_SIZE,       // The payload size is invalid
         BUFFER_OVERFLOW,            // Packet too large for buffer
         QUEUE_FULL,                 // FreeRTOS queue full
-        INVALID_PAYLOAD_SIZE,       // Payload size does not match expected for given command
-        ID_OUT_OF_RANGE             // The requested id is out of range
+        ID_OUT_OF_RANGE,            // The requested id is out of range
+        POSITION_OUT_OF_RANGE       // The position is out of range
     };
 
     // Servo Identifiers

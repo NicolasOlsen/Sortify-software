@@ -6,18 +6,23 @@
 #include "config/task_config.h"
 #include "shared/shared_objects.h"
 
+#include "utils/task_timer.h"
 #include "utils/debug_utils.h"
 
 using namespace COMM_CODE;
 
+#ifdef TIMING_MODE
+    static TaskTimingStats commTiming;
+#endif
+
 auto& manager = Shared::servoManager;
 
-float tempCurrentPositions[manager.getTotalAmount()] = {0};
-float tempGoalPositions[manager.getTotalAmount()] = {0};
+float tempCurrentPositions[manager.getTotalAmount()];
+float tempGoalPositions[manager.getTotalAmount()];
 
-constexpr float tolerance = 0.2f;
+constexpr float idleTolerance = 1.0f;
 
-void checkForErrors();
+void checkForErrors(StatusCode status);
 void checkForMovement();
 
 static void TaskThink(void *pvParameters) {
@@ -25,23 +30,63 @@ static void TaskThink(void *pvParameters) {
 
 	Debug::infoln("[T_Think] started");
 
-	auto timer = millis();
-
 	for (;;) {
-	  	timer = millis();
-
 	  	Debug::infoln("[T_Think]");
 
-		checkForErrors();
-		
-		if (Shared::systemState.Get() != StatusCode::FAULT) {
-			checkForMovement();
+		#ifdef TIMING_MODE
+		  uint32_t startMicros = micros();
+	  	#endif
+
+		StatusCode status = Shared::systemState.Get();
+		if (status != StatusCode::FAULT_INIT) {
+			checkForErrors(status);
 		}
 
-		Serial.println("Th Timer: " + String(millis() - timer));
+		switch(Shared::systemState.Get()) {
+			case StatusCode::INITIALIZING: {
+				break;
+			}
+			case StatusCode::IDLE: {
+				checkForMovement();
+				break;
+			}
 
-		// Wait until the next period
-		vTaskDelayUntil(&lastWakeTime, THINK_TASK.period);
+			case StatusCode::MOVING: {
+				checkForMovement();
+				break;
+			}
+
+			case StatusCode::FAULT_INIT: {
+				break;
+			}
+
+			case StatusCode::FAULT_RUNTIME: {
+				break;
+			}
+		}
+
+		#ifdef TIMING_MODE
+			uint32_t duration = micros() - startMicros;
+			commTiming.update(duration);
+
+			#ifdef INDIVIDUAL_TIMING_MODE
+				if (commTiming.runCount >= TIMING_SAMPLE_COUNT) {
+					commTiming.printTimingStats("Thinker");
+					commTiming.reset();
+					vTaskDelayUntil(&lastWakeTime, pdMS_TO_TICKS(TIMING_DELAY_TASKS));
+				}
+			#else
+				if (commTiming.runCount >= TIMING_SAMPLE_COUNT) {
+					commTiming.printTimingStats("Thinker");
+					commTiming.reset();
+				}
+		
+				vTaskDelayUntil(&lastWakeTime, THINK_TASK.period);  // Regular periodic delay
+			#endif
+		
+		#else
+			vTaskDelayUntil(&lastWakeTime, THINK_TASK.period);      // Not in timing mode at all
+		#endif
 	}
 }
 
@@ -70,7 +115,7 @@ void checkForMovement() {
 	// Compare each servo's current position to its goal position
 	// If any servo is outside the allowed movement tolerance, the system is still moving
 	for (uint8_t id = 0; id < manager.getTotalAmount(); ++id) {
-		if (fabsf(tempCurrentPositions[id] - tempGoalPositions[id]) > tolerance) {
+		if (fabsf(tempCurrentPositions[id] - tempGoalPositions[id]) > idleTolerance) {
 			idle = false;
 			break;  // Early exit if any servo is still in motion
 		}
@@ -88,27 +133,32 @@ void checkForMovement() {
 }
 
 
-void checkForErrors() {
-	// Temporary buffer for DXL error codes
-	DXLLibErrorCode_t tempErrors[manager.getDXLAmount()] = {0};
+void checkForErrors(StatusCode status) {
+	// Temporary buffers for DXL error codes and flags
+	DXLLibErrorCode_t tempErrors[manager.getDXLAmount()];
+	bool tempErrorFlags[manager.getDXLAmount()];
 
 	// Persistent error count for each DXL servo across task cycles
-	static uint8_t errorCount[manager.getDXLAmount()] = {0};
+	static uint8_t errorCount[manager.getDXLAmount()];
 
 	// Read latest servo error states from shared memory
-	Shared::servoErrors.Get(
-		tempErrors, 
-		manager.getDXLAmount());
+	Shared::currentErrors.Get(tempErrors);
+
+	Shared::currentErrors.GetFlags(tempErrorFlags);
 
 	// Used to determine if system should remain operational or enter FAULT
 	bool systemStateOK = true;
 
-	// Temporary copy of update flags for goal positions
-	bool updatedFlags[manager.getTotalAmount()];
-	Shared::goalPositions.GetFlags(updatedFlags, manager.getTotalAmount());
-
 	// Loop through all Dynamixel servos to check their error status
 	for (uint8_t id = 0; id < manager.getDXLAmount(); id++) {
+		// Check flags if changed
+		if (tempErrorFlags[id]) {
+			tempErrorFlags[id] = false;
+		}
+		else {	// Dont process error, its not been updated
+			continue;
+		}
+
 		if (tempErrors[id] == DXL_LIB_OK) {
 			// Reset error counter on successful communication
 			errorCount[id] = 0;
@@ -120,9 +170,6 @@ void checkForErrors() {
 			if (errorCount[id] > MAX_ERRORS) {
 				systemStateOK = false;
 
-				// Disable goal updates for this servo to stop retry spam
-				updatedFlags[id] = false;
-
 				Debug::warnln("Servo " + String(id) + " exceeded max retries. Disabling goal updates.");
 			} else {
 				// Increment retry counter
@@ -131,18 +178,20 @@ void checkForErrors() {
 		}
 		else {
 			// Unrecoverable or unexpected error (hardware fault)
-			updatedFlags[id] = false;
 			systemStateOK = false;
 
 			Debug::errorln("Critical error on servo ID: " + String(id));
 		}
 	}
 
-	// Write updated flags back to shared buffer all at once, mutex-safe
-	Shared::goalPositions.SetFlags(updatedFlags, manager.getTotalAmount());
+	Shared::currentErrors.SetFlags(tempErrorFlags);
 
-	// If the system is NOT OK
-	if (!systemStateOK) {
+	if (systemStateOK) {
+		if (status == StatusCode::FAULT_RUNTIME) {
+			// Shared::systemState.Set(StatusCode::INITIALIZING);
+		}
+	}
+	else {
 		Debug::errorln("[T_Think] Switching to FAULT state");
 
 		// Freeze all movement by copying current positions as new goals
@@ -151,9 +200,13 @@ void checkForErrors() {
 			manager.getTotalAmount());
 		Shared::goalPositions.Set(
 			tempCurrentPositions, 
-			manager.getTotalAmount(), 0, false);
+			manager.getTotalAmount());
 
-		// System goes into FAULT mode
-		Shared::systemState.Set(StatusCode::FAULT);
+		// System goes into FAULT mode and saves errors if not already
+		if (status != StatusCode::FAULT_INIT &&
+		status != StatusCode::FAULT_RUNTIME) {
+			Shared::systemState.Set(StatusCode::FAULT_RUNTIME);
+			Shared::lastErrors.Set(tempErrors);
+		}
 	}
 }

@@ -2,8 +2,8 @@
 #define PACKET_UTILS_H
 
 #include <stdint.h>
+#include <string.h>
 
-#include "shared/shared_servo_data.h"
 #include "comms/Communication_code.h"
 #include "config/communication_config.h"
 
@@ -18,8 +18,8 @@ namespace PACKET_UTILS {
  * @param outputArray The array to save the byte data
  */
 template<typename T>
-void convertBytesToTypedArray(const uint8_t* byteData, size_t count, T* outputArray) {
-    for (size_t i = 0; i < count; ++i) {    // Count is the amount of the data type
+void convertBytesToTypedArray(const uint8_t* byteData, uint8_t count, T* outputArray) {
+    for (uint8_t i = 0; i < count; ++i) {    // Count is the amount of the data type
         memcpy(&outputArray[i], &byteData[i * sizeof(T)], sizeof(T));   // Copies from the bytedata, with the size of the data type at a time
     }
 }
@@ -57,6 +57,13 @@ uint16_t calculateCRC16(const uint8_t* packet, uint8_t packetSize);
  * @return If the packet is the expected size
  */
 bool packetExpectedSize(uint8_t packetSize, uint8_t expectedSize);
+
+/**
+ * @brief Checks if the system state is in a fault state
+ * 
+ * @return True if the system is in a non fault state, false if it is in a fault state;
+ */
+bool isSystemStateFault();
 
 }
 

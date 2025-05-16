@@ -28,7 +28,7 @@ static void TaskCommunication(void *pvParameters) {
     Debug::infoln("[T_Comm] started");
 
     for (;;) {
-        // Debug::infoln("[T_Comm]");
+        Debug::infoln("[T_Comm]");
 
         #ifdef TIMING_MODE
             uint32_t startMicros = micros();
@@ -43,14 +43,26 @@ static void TaskCommunication(void *pvParameters) {
         #ifdef TIMING_MODE
             uint32_t duration = micros() - startMicros;
             commTiming.update(duration);
+    
+            #ifdef INDIVIDUAL_TIMING_MODE
+                if (commTiming.runCount >= TIMING_SAMPLE_COUNT) {
+                    commTiming.printTimingStats("Comm");
+                    commTiming.reset();
+                    vTaskDelayUntil(&lastWakeTime, pdMS_TO_TICKS(TIMING_DELAY_TASKS));
+                }
+            #else
+                if (commTiming.runCount >= TIMING_SAMPLE_COUNT) {
+                    commTiming.printTimingStats("Comm");
+                    commTiming.reset();
+                }
         
-            if (commTiming.runCount >= TIMING_SAMPLE_COUNT) {
-                commTiming.printTimingStats("Comm");
-                commTiming.reset();
-            }
+                vTaskDelayUntil(&lastWakeTime, COMM_TASK.period);  // Regular periodic delay
+            #endif
+        
+        #else
+            vTaskDelayUntil(&lastWakeTime, COMM_TASK.period);      // Not in timing mode at all
         #endif
-
-        vTaskDelayUntil(&lastWakeTime, COMM_TASK.period);  // Keeps execution periodic
+    
     }
 }
 
