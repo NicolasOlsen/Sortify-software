@@ -8,6 +8,18 @@ from crc16 import CRC16
 
 import logging
 
+"""
+Parts of this file were partially or fully generated with support from ChatGPT, based on the GPT-4o model by OpenAI.
+
+The generation prompt was based on context and structure taken from existing C++ implementations in the motorcontroller 
+modules developed for the Sortify bachelor project. Modifications have been made to better align the logic and naming conventions 
+with the original C++ code.
+
+All generated content has been reviewed, manually adjusted, and tested by the responsible developer to ensure correctness, 
+maintainability, and adherence to the projects overall design principles.
+"""
+
+
 # Setup logging
 logger = logging.getLogger(__name__)
 
@@ -102,14 +114,14 @@ class PacketState(Enum):
 # ========== UART HANDLER ==========
 class MasterUART:
 	"""
-	A UART communication handler for sending and receiving structured packets
-	between a host (e.g., Raspberry Pi) and a motorcontroller.
+	This is a UART communication class for sending and receiving structured packets
+	between a host device and a motorcontroller.
 
-	This class handles:
-	- Constructing and sending command packets
-	- Waiting for and parsing structured response packets
+	This class does the following:
+	- Constructs and sends command packets
+	- Waits for and parses structured response packets
 	- Error checking (CRC and timeouts)
-	- Providing high-level APIs for specific actions
+	- Provides high-level APIs for specific actions
 
 	Attributes:
 		ser (serial.Serial): The serial interface.
