@@ -45,7 +45,7 @@ public:
     bool setToPosition(float position);
 
     /**
-     * @brief Attempts to set the position only if it's within allowed limits.
+     * @brief Attempts to set the position only if its within allowed limits.
      * 
      * @param position Angle in degrees
      * 

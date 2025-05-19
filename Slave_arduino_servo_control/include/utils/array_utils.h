@@ -3,6 +3,16 @@
 
 #include <stdint.h>
 
+/*
+These functions were generated with the help of ChatGPT (GPT-4o, OpenAI)
+to address array slicing issues encountered during development.
+
+The generation was based on a specific C++ usage context, and the resulting
+templates have been reviewed, tested, and verified by the developer to ensure 
+correctness and compatibility with the projects requirements.
+*/
+
+
 /**
  * @brief Slices the first N elements from a larger fixed-size array.
  * 

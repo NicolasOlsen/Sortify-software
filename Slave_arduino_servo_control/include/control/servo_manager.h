@@ -13,8 +13,6 @@ constexpr bool MANAGER_DEBUG = true;
 /**
  * @brief Manages a fixed set of Dynamixel and analog servos.
  * 
- * Designed for use with static memory and external data buffers (e.g., SharedServoData).
- * Supports setting positions, velocities, reading states, and batching communication with minimal overhead.
  * 
  * @tparam sizeDXL Number of Dynamixel servos
  * @tparam sizeAnalog Number of analog servos

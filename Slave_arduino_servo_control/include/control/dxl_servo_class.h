@@ -36,7 +36,7 @@ public:
     * 
     * Must be called once in setup() before using any DxlServo objects.
     * 
-    * @return true if the driver was initialized successfully
+    * @return True if the driver was initialized successfully
     */
    static bool initDxlServoDriver();
 
@@ -54,7 +54,7 @@ public:
      * the function retries up to the specified number of attempts.
      * 
      * @param maxAttempts Number of retry attempts before failing
-     * @return true if initialized successfully, false if all attempts failed
+     * @return True if initialized successfully, false if all attempts failed
      */
     bool initWithRetry(uint8_t maxAttempts = 3);
 
@@ -64,7 +64,7 @@ public:
      * 
      * Updates internal error state.
      * 
-     * @return true if ping was successful
+     * @return True if ping was successful
      */
     bool ping();
 
@@ -96,11 +96,11 @@ public:
      * converts the value from degrees to raw Dynamixel units, and sends a single syncWrite packet
      * to update all specified servos at once. It does NOT wait for a response.
      * 
-     * This method assumes that the `DxlServo::init()` has been called for each servo.
+     * This method assumes that the 'DxlServo::init()' has been called for each servo.
      * 
      * @tparam DXLAmount Number of servos in the array
      * 
-     * @param servos Pointer to an array of `DxlServo` objects to command
+     * @param servos Pointer to an array of 'DxlServo' objects to command
      * @param positions Pointer to an array of target angles (in degrees) for each servo
      * 
      * @return True if the syncWrite packet was sent successfully, false otherwise
@@ -124,14 +124,14 @@ public:
      * @brief Sends target velocities to multiple servos simultaneously using syncWrite.
      * 
      * This function converts each target velocity from degrees per second to raw Dynamixel units,
-     * based on the velocity scale configured in each `DxlServo` instance. It then sends a single 
+     * based on the velocity scale configured in each 'DxlServo' instance. It then sends a single 
      * syncWrite packet to update all specified servos. It does NOT wait for a response.
      * 
-     * This method assumes that the `DxlServo::init()` has been called for each servo.
+     * This method assumes that the 'DxlServo::init()' has been called for each servo.
      * 
      * @tparam DXLAmount Number of servos in the array
      * 
-     * @param servos Pointer to an array of `DxlServo` objects to command
+     * @param servos Pointer to an array of 'DxlServo' objects to command
      * @param velocityDegPerSec Pointer to an array of target velocities (in degrees per second) for each servo
      * 
      * @return True if the syncWrite packet was sent successfully, false otherwise
@@ -143,7 +143,7 @@ public:
     /**
      * @brief Reads the current position of the servo in degrees.
      * 
-     * @return Float Angle in degrees, will return 0 if failed (if error, this )
+     * @return Float Angle in degrees, will return 0 if failed
      */
     float getPosition();
 
@@ -152,13 +152,13 @@ public:
      * 
      * This function performs a bulkRead request for all specified servos and fills the provided
      * array with the current position of each servo (in degrees). Communication results and
-     * per-servo error states are stored internally in each `DxlServo` instance via `_lastErrorCode`.
+     * per-servo error states are stored internally in each 'DxlServo' instance via '_lastErrorCode'.
      * 
-     * This method assumes that the `DxlServo::init()` has been called for each servo.
+     * This method assumes that the 'DxlServo::init()' has been called for each servo.
      * 
      * @tparam DXLAmount Number of servos in the array
      * 
-     * @param servos Pointer to an array of `DxlServo` objects to read from
+     * @param servos Pointer to an array of 'DxlServo' objects to read from
      * @param positions Pointer to an array to be filled with current positions (in degrees)
      * 
      * @return True if at all servos responded successfully, false otherwise
@@ -196,7 +196,7 @@ private:
      * @brief Converts a velocity in degrees per second to raw Dynamixel value.
      * 
      * Conversion:
-     *   deg/s → rpm → raw value.
+     *   deg/s -> rpm -> raw value.
      *   Raw = (degPerSec * 60 / 360) / velocityUnitScale
      * 
      * @param velocityDegPerSec Input velocity in degrees per second
@@ -260,7 +260,7 @@ bool DxlServo::syncSetVelocities(const DxlServo (&servos)[DXLAmount], const floa
     sync_info.p_xels = info_xels;
     sync_info.xel_count = DXLAmount;
     sync_info.is_info_changed = true;
-    sync_info.packet.p_buf = nullptr;         // Let SDK manage buffer
+    sync_info.packet.p_buf = nullptr;
     sync_info.packet.is_completed = false;
 
     return dxl.syncWrite(&sync_info);
