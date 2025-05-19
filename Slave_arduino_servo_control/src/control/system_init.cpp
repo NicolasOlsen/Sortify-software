@@ -77,7 +77,7 @@ void InitSystem() {
     Shared::servoManager.setGoalVelocities(DEFAULT_SERVO_VELOCITIES);
 
     if (tempStatus == StatusCode::FAULT_INIT) {
-        Debug::errorln("System is in FAULT_INIT mode");
+        Debug::warnln("System is in FAULT_INIT mode");
     } 
     else {
         Shared::systemState.Set(StatusCode::IDLE);    // System is initialized and idle

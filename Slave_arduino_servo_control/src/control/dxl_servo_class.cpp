@@ -8,7 +8,7 @@
 DynamixelShield DxlServo::dxl;
 
 bool DxlServo::initDxlServoDriver() {
-    dxl.begin(BAUDRATE_DXL);  // BAUDRATE_DXL if you have it defined elsewhere
+    dxl.begin(BAUDRATE_DXL);
     if (dxl.getLastLibErrCode() == D2A_LIB_ERROR_NULLPTR_PORT_HANDLER) {
         Debug::errorln("Dynamixel driver failed to begin()");
         return false;
@@ -137,10 +137,10 @@ bool DxlServo::checkPositionInAllowedRange(float position) const {
 uint32_t DxlServo::convertDegPerSecToRaw(float velocityDegPerSec) const {
     // Adjust the scale factor to better fit smaller velocities
     if (velocityDegPerSec < 2.0f) {
-        velocityDegPerSec = 1.0f;  // Ensures you don't get 0, for example.
+        velocityDegPerSec = 1.0f;  // Ensures you dont get 0.
     }
 
-    float rpm = velocityDegPerSec * (60.0f / 360.0f);  // deg/s → rpm
+    float rpm = velocityDegPerSec * (60.0f / 360.0f);  // deg/s -> rpm
     float raw = rpm / _velocityUnitScale;
     return static_cast<uint32_t>(raw);
 }

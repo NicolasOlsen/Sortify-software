@@ -10,11 +10,11 @@
 // Combined default positions for all servos (smart + analog)
 // Order: Base, Shoulder, Elbow, Wrist, Gripper
 inline constexpr float DEFAULT_SERVO_POSITIONS[] = {
+    90.0f,
     180.0f,
-    180.0f,
-    180.0f,
-    180.0f,
-    90.0f
+    130.0f,
+    90.0f,
+    100.0f
 };
 
 inline constexpr float DEFAULT_SERVO_VELOCITIES[] = {
@@ -26,13 +26,13 @@ inline constexpr float DEFAULT_SERVO_VELOCITIES[] = {
 
 inline const DxlServo DXL_SERVOS_CONFIG[] = {
     DxlServo(0, 0, 360, 0.229),     // Base
-    DxlServo(1, 90, 270, 0.229),    // Shoulder
+    DxlServo(1, 70, 260, 0.229),    // Shoulder
     DxlServo(2, 70, 290, 0.229),    // Elbow
     DxlServo(3, 70, 290, 0.229)     // Wrist
 };
 
 inline const AnalogServo ANALOG_SERVOS_CONFIG[] = {
-    AnalogServo(0, 110, 500, 180, 0, 100)   // Gripper
+    AnalogServo(0, 110, 500, 180, 0, 95)   // Gripper
 };
 
 // Servo counts derived from array

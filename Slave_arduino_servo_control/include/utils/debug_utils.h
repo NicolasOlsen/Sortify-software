@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include "config/project_config.h"
 
-// === ANSI color codes ===
+//  ANSI color codes 
 #define COLOR_RED     "\033[31m"
 #define COLOR_YELLOW  "\033[33m"
 #define COLOR_GREEN   "\033[32m"
@@ -60,7 +60,7 @@ inline void logPrefix(const char* label, const char* color = nullptr) {
     printTimestamp();
 }
 
-// === Log functions by level ===
+//  Log functions by level 
 
 inline void error(const String& msg) {
     if constexpr (DEBUG_LEVEL >= LOG_ERROR) {
@@ -118,7 +118,7 @@ inline void verboseln(const String& msg) {
     }
 }
 
-// === Byte/Hex utils ===
+//  Byte/Hex utils 
 
 inline void printHex(uint8_t byte) {
     DEBUG_SERIAL.print(byte, HEX);

@@ -20,7 +20,7 @@ auto& manager = Shared::servoManager;
 float tempCurrentPositions[manager.getTotalAmount()];
 float tempGoalPositions[manager.getTotalAmount()];
 
-constexpr float idleTolerance = 1.0f;
+constexpr float idleTolerance = 2.0f;
 
 void checkForErrors(StatusCode status);
 void checkForMovement();

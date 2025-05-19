@@ -103,13 +103,13 @@ class PacketState(Enum):
 class MasterUART:
 	"""
 	A UART communication handler for sending and receiving structured packets
-	between a host (e.g., Raspberry Pi) and an Arduino-based servo controller.
+	between a host (e.g., Raspberry Pi) and a motorcontroller.
 
 	This class handles:
 	- Constructing and sending command packets
 	- Waiting for and parsing structured response packets
 	- Error checking (CRC and timeouts)
-	- Providing high-level APIs for specific robotarm actions
+	- Providing high-level APIs for specific actions
 
 	Attributes:
 		ser (serial.Serial): The serial interface.
@@ -182,14 +182,14 @@ class MasterUART:
 		for attempt in range(self.MAX_RETRIES):
 			self.ser.reset_input_buffer()
 			self.ser.write(packet)
-			logger.info(f"[SEND] {packet.hex(' ')} (Attempt {attempt + 1})")
+			logger.info(f"SEND: {packet.hex(' ')} (Attempt {attempt + 1})")
 
 			raw = self._read_aligned_packet()
 
 			if raw:
 				result = self._parse_packet(raw)
 				if result.crc_ok:
-					logger.info(f"[RECEIVED] {raw.hex(' ')}")
+					logger.info(f"RECEIVED: {raw.hex(' ')}")
 					return result
 				else:
 					logger.warning(f"CRC failed on attempt {attempt + 1}")

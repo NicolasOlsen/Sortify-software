@@ -36,7 +36,7 @@ namespace COMM_CODE {
     };
 
     // Error Codes
-    // These errors are reported with a NACK payload or in error reports.
+    // These errors are reported with a NACK payload.
     enum class ComErrorCode : uint8_t {
         SYSTEM_FAULT = 0x01,        // System is in fault mode
         COMM_TIMEOUT,               // Timeout waiting for full packet
@@ -48,16 +48,5 @@ namespace COMM_CODE {
         ID_OUT_OF_RANGE,            // The requested id is out of range
         POSITION_OUT_OF_RANGE       // The position is out of range
     };
-
-    // Servo Identifiers
-    // Used to reference a specific servo motor when setting positions or stopping individual servos.
-    enum class ServoId : uint8_t {
-        BASE     = 0x00,  // Base rotation servo
-        SHOULDER = 0x01,  // Shoulder joint servo
-        ELBOW    = 0x02,  // Elbow joint servo
-        WRIST    = 0x03,  // Wrist joint servo
-        GRIPPER  = 0x04   // Gripper (NOT INCLUDED in SET_ALL_POSITIONS)
-    };
 }
-
 #endif // COMMUNICATION_CODE_H

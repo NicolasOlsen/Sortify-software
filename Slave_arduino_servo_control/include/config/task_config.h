@@ -12,7 +12,7 @@
 struct TaskConfig {
     TickType_t period;           // How often the task should run (in ticks)    |   Be aware that pdMS is turned to tick, the default is 1 tck is 15ms from the watchdog timer
     UBaseType_t priority;        // FreeRTOS priority (higher = more important)
-    uint16_t stackSize;          ///< Stack size in words (not bytes!)
+    uint16_t stackSize;          // Stack size in words (not bytes!)
 };
 
 // === Individual Task Configurations ===
@@ -24,7 +24,7 @@ struct TaskConfig {
 constexpr TaskConfig COMM_TASK = { pdMS_TO_TICKS(17), 4, 512 };
 
 /**
- * @brief Think/task planner
+ * @brief Think task
  * Medium-high priority, background decision-making.
  */
 constexpr TaskConfig THINK_TASK = { pdMS_TO_TICKS(33), 3, 256 };
