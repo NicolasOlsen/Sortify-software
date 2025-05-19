@@ -43,9 +43,13 @@ void InitSystem() {
     // Retrieve and store initialization error codes after initAll()
     // This allows the system to inspect which servos failed to init
     DXLLibErrorCode_t tempErrors[Shared::servoManager.getDXLAmount()];
+
+     // Gets the errors
     Shared::servoManager.getErrors(
         tempErrors, 
         Shared::servoManager.getDXLAmount());
+
+    // Save the errors
     Shared::currentErrors.Set(
         tempErrors, 
         Shared::servoManager.getDXLAmount());
@@ -53,11 +57,11 @@ void InitSystem() {
         tempErrors, 
         Shared::servoManager.getDXLAmount());
 
-    // Save the real positions of the servos if there was succesfull initalising
+    // If the initaliziation failed, save standarised data, to have defined values
     if (tempStatus == StatusCode::FAULT_INIT) {
         Shared::currentPositions.Set(DEFAULT_SERVO_POSITIONS, TOTAL_SERVO_COUNT);
     }
-    else {
+    else { // Save the real positions of the servos if the initaliziation was succesfull 
         float tempCurrentPosition[TOTAL_SERVO_COUNT];
         for (uint8_t id = 0; id < TOTAL_SERVO_COUNT; id++) {
             if (id < Shared::servoManager.getDXLAmount()) {

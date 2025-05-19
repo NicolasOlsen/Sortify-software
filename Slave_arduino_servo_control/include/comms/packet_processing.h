@@ -7,7 +7,7 @@ namespace UART_COMM
 {
 
 /**
- * @brief Processes a complete packet received via UART.
+ * @brief Processes a complete packet received via Arduino Serial.
  * @param packet The packet to process
  * @param length The langth of the packet
  */

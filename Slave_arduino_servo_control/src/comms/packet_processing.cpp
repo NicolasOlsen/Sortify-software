@@ -106,7 +106,7 @@ void processReceivedPacket(const uint8_t* packet, uint8_t packetSize) {
 
 namespace {
 
-constexpr uint8_t rangeMetaSize = 2; // [start_id][count] in payload
+constexpr uint8_t rangeMetaSize = 2; // start_id + count, in payload
 
 // Generic read handler for any SharedArrayWithFlags type
 template<typename T, uint8_t SIZE>

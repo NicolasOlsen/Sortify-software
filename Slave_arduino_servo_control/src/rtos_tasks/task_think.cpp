@@ -20,7 +20,7 @@ auto& manager = Shared::servoManager;
 float tempCurrentPositions[manager.getTotalAmount()];
 float tempGoalPositions[manager.getTotalAmount()];
 
-constexpr float idleTolerance = 2.0f;
+constexpr float idleTolerance = 2.0f;	// In degrees, currently set high because of low tolerance during high load
 
 void checkForErrors(StatusCode status);
 void checkForMovement();
@@ -102,7 +102,7 @@ void createTaskThink() {
 }
 
 void checkForMovement() {
-	// Retrieve current servo positions and goal positions from shared memory
+	// Retrieve current servo positions and goal positions from shared data
 	Shared::currentPositions.Get(
 		tempCurrentPositions, 
 		manager.getTotalAmount());
@@ -134,14 +134,14 @@ void checkForMovement() {
 
 
 void checkForErrors(StatusCode status) {
-	// Temporary buffers for DXL error codes and flags
+	// Temporary buffers for Dxl error codes and flags
 	DXLLibErrorCode_t tempErrors[manager.getDXLAmount()];
 	bool tempErrorFlags[manager.getDXLAmount()];
 
-	// Persistent error count for each DXL servo across task cycles
+	// Persistent error count for each Dxl servo across task cycles
 	static uint8_t errorCount[manager.getDXLAmount()];
 
-	// Read latest servo error states from shared memory
+	// Read latest servo error states from shared data
 	Shared::currentErrors.Get(tempErrors);
 
 	Shared::currentErrors.GetFlags(tempErrorFlags);
@@ -166,33 +166,34 @@ void checkForErrors(StatusCode status) {
 		else if (tempErrors[id] == DXL_LIB_ERROR_CHECK_SUM ||
 				 tempErrors[id] == DXL_LIB_ERROR_CRC) {
 			
-			// Handle recoverable/transient errors (communication noise)
+			// Handle recoverable errors, such as communication noise
 			if (errorCount[id] > MAX_ERRORS) {
 				systemStateOK = false;
 
 				Debug::warnln("Servo " + String(id) + " exceeded max retries. Disabling goal updates.");
 			} else {
-				// Increment retry counter
 				++errorCount[id];
 			}
 		}
 		else {
-			// Unrecoverable or unexpected error (hardware fault)
+			// Unrecoverable or unexpected error
 			systemStateOK = false;
 
-			Debug::errorln("Critical error on servo ID: " + String(id));
+			Debug::warnln("Critical error on servo ID: " + String(id));
 		}
 	}
 
 	Shared::currentErrors.SetFlags(tempErrorFlags);
 
 	if (systemStateOK) {
-		if (status == StatusCode::FAULT_RUNTIME) {
+		if (status == StatusCode::FAULT_RUNTIME) {		// Uncomment to allow for automatic recovery.
+														// Currently not safe as Dxl servos needs to re-activate torque after failure,
+														// and some failures require reboot
 			// Shared::systemState.Set(StatusCode::INITIALIZING);
 		}
 	}
 	else {
-		Debug::errorln("[T_Think] Switching to FAULT state");
+		Debug::warnln("[T_Think] Switching to FAULT state");
 
 		// Freeze all movement by copying current positions as new goals
 		Shared::currentPositions.Get(
@@ -202,7 +203,7 @@ void checkForErrors(StatusCode status) {
 			tempCurrentPositions, 
 			manager.getTotalAmount());
 
-		// System goes into FAULT mode and saves errors if not already
+		// System goes into FAULT mode and saves errors if not already in a FAULT state
 		if (status != StatusCode::FAULT_INIT &&
 		status != StatusCode::FAULT_RUNTIME) {
 			Shared::systemState.Set(StatusCode::FAULT_RUNTIME);

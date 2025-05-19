@@ -16,14 +16,14 @@ public:
      * @param channel PWM channel (0–15) used by the PCA9685
      * @param minPWM Minimum PWM pulse
      * @param maxPWM Maximum PWM pulse
-     * @param maxDegree Physical max range of the servo (default 180°)
-     * @param minAllowedDegree Optional minimum allowed position for this servo (default 0°)
-     * @param maxAllowedDegree Optional maximum allowed position (default = maxDegree)
+     * @param maxDegree Physical max range of the servo
+     * @param minAllowedDegree Minimum allowed position for this servo
+     * @param maxAllowedDegree Maximum allowed position
      */
     AnalogServo(uint8_t channel, uint16_t minPWM, uint16_t maxPWM,
                 float maxDegree = 180.0f,
                 float minAllowedDegree = 0.0f,
-                float maxAllowedDegree = -1.0f);  // -1 means "use maxDegree"
+                float maxAllowedDegree = 180.0f);
 
     AnalogServo();
 
@@ -40,25 +40,16 @@ public:
      * 
      * @param position Angle in degrees
      * 
-     * @return True if successful (driver acknowledged command)
+     * @return True if successful
      */
     bool setToPosition(float position);
-
-    /**
-     * @brief Attempts to set the position only if its within allowed limits.
-     * 
-     * @param position Angle in degrees
-     * 
-     * @return True if within limits and command sent, false if out of range (nothing sent)
-     */
-    bool trySetToPosition(float position);
 
     /**
      * @brief Checks whether the given position is within the allowed range.
      * 
      * @param position Angle in degrees
      * 
-     * @return True if within [_minAllowedDegree, _maxAllowedDegree]
+     * @return True if angle is within the allowed range
      */
     bool checkPositionInAllowedRange(float position) const;
 

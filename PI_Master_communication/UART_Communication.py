@@ -11,8 +11,8 @@ import logging
 """
 Parts of this file were partially or fully generated with support from ChatGPT, based on the GPT-4o model by OpenAI.
 
-The generation prompt was based on context and structure taken from existing C++ implementations in the motorcontroller 
-modules developed for the Sortify bachelor project. Modifications have been made to better align the logic and naming conventions 
+The generation prompt was based on context and structure taken from existing C++ implementations in the motorcontroller module 
+developed for the Sortify bachelor project. Modifications have been made to better align the logic and naming conventions 
 with the original C++ code.
 
 All generated content has been reviewed, manually adjusted, and tested by the responsible developer to ensure correctness, 

@@ -32,8 +32,8 @@ static void TaskServoSetter(void *pvParameters) {
 		#endif
 
 		auto systemState = Shared::systemState.Get();
-		if (systemState != StatusCode::FAULT_INIT) {
-			// Safe to set servo goals even during runtime faults
+		if (systemState != StatusCode::FAULT_INIT) {		// Not safe to set servo goals when the init faults
+															// Runtime fault is safe since it uses the last read valid position
 			Shared::goalVelocities.Get(tempGoalVelocities);
 			Shared::goalPositions.Get(tempGoalPositions);
 		

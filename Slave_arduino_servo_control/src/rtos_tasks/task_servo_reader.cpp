@@ -35,8 +35,8 @@ static void TaskServoReader(void *pvParameters) {
 		StatusCode systemState = Shared::systemState.Get();
 		if (systemState == StatusCode::FAULT_INIT ||
 			systemState == StatusCode::FAULT_RUNTIME) {			
-			// Ping DXL servos to keep them responsive and detect recovery for logging,
-			// but avoid full reads to minimize task time in FAULT mode
+			// Ping Dxl servos for diagnostics and logging,
+			// avoids full reads to minimize task time in FAULT mode
 			manager.ping(id);
 
 			tempErrors[id] = manager.getError(id);
@@ -45,11 +45,11 @@ static void TaskServoReader(void *pvParameters) {
 			id = (id + 1) % manager.getDXLAmount();
 		}
 		else {
-			// Normal operation: fetch real positions and error codes
+			// Normal operation, get real positions and error codes
 			manager.getCurrentPositions(sliceFirst<float, manager.getDXLAmount()>(tempCurrentPositions));
 			manager.getErrors(tempErrors, manager.getDXLAmount());
 
-			// Add analog servo positions based on goal fallback
+			// Add analog servo positions based on goal position
 			Shared::goalPositions.Get(
 				&tempCurrentPositions[manager.getDXLAmount()],
 				manager.getAnalogAmount(),
@@ -65,7 +65,7 @@ static void TaskServoReader(void *pvParameters) {
 				}
 			}
 
-			// Only save the positions if succesfull, since the syncRead only returns data if all where succesful
+			// Only save the positions if succesfull, since sync-read only returns data if all where succesful
 			if (allSuccess) {
 				Shared::currentPositions.Set(tempCurrentPositions, manager.getTotalAmount());
 			} else {

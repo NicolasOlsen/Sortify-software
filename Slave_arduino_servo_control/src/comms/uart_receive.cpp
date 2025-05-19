@@ -30,7 +30,7 @@ void receiveUARTData() {
         packetStartTime = 0;
     };
 
-    // Check for packet timeout (prevents hanging in mid-packet if something went wrong)
+    // Check for packet timeout (prevents hanging mid-packet if something went wrong)
     if (state != ReceiveState::SYNC && (millis() - packetStartTime > PACKET_TIMEOUT)) {
         Debug::printHex(localBuffer, localIndex);
         Debug::print("\n");
@@ -50,14 +50,14 @@ void receiveUARTData() {
                 if (localIndex < START_BYTES_SIZE && incomingByte == START_BYTES[localIndex]) {
                     localBuffer[localIndex++] = incomingByte;
 
-                    // Sync complete: move to length phase
+                    // Sync complete, move to length phase
                     if (localIndex == START_BYTES_SIZE) {
                         state = ReceiveState::LENGTH;
                         packetStartTime = millis();
                         Debug::info("Receiving: ");
                     }
                 } else {
-                    // Sync error: reset sync state
+                    // Sync error, reseting sync state
                     resetState();
                     #ifdef DEBUG
                         if (localIndex > 0) {
@@ -104,7 +104,7 @@ void receiveUARTData() {
                     Debug::print("\n");
 
                     if (PACKET_UTILS::validatePacketCRC(localBuffer, expectedLength)) {
-                        // Valid packet: send to queue
+                        // Valid packet, send to queue
                         UARTPacket packet;
                         memcpy(packet.data, localBuffer, expectedLength);
                         packet.length = expectedLength;

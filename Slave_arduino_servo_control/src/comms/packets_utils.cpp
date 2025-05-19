@@ -48,7 +48,7 @@ bool validatePacketCRC(const uint8_t* packet, uint8_t packetSize) {
     uint16_t receivedCRC = (packet[packetSize - 2]) |
                            (packet[packetSize - 1] << 8);
 
-    // Recompute CRC over the same region used in makePacketCRC()
+    // Recompute CRC
     uint16_t computedCRC = calculateCRC16(packet, packetSize);
 
     #ifdef DEBUG

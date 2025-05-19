@@ -8,9 +8,9 @@
 #include "utils/debug_utils.h"
 
 /**
- * @brief Shared container for thread-safe access to servo data.
+ * @brief Shared container for thread-safe access to data.
  * 
- * @tparam T The type of data to store (float, enum, etc.)
+ * @tparam T The type of data to store
  * @tparam size The number of elements in the array.
  */
 template <typename T, uint8_t size>
@@ -27,37 +27,40 @@ public:
     SharedArray();
 
     /**
-     * @brief Retrieves the data for a given servo with mutex protection.
+     * @brief Gets data, with mutex protection.
      * 
-     * @param id        The ID of the servo. If the ID is invalid (out of range), the returned value is default-initialized (e.g., 0).
-     * 
-     * @return The corresponding data value, or default-constructed T if the ID is invalid.
+     * @param index         Index to get from
+     * @return              The corresponding data value, or default-constructed T if the ID is invalid
      */
     T Get(uint8_t id);
 
     /**
-     * @brief Copies a segment of the stored servo data into the provided array with mutex protection.
+     * @brief Copies a range of data into the provided array, with mutex protection.
      * 
-     * @param arr         Pointer to the output array that will be filled with servo data.
-     * @param size_       Number of elements to copy.
-     * @param start_index Starting index in the internal data array (default: 0).
+     *        Will return without copying, if the the range is out of bounds.
+     * 
+     * @param arr           Pointer to the output array that will be filled with data
+     * @param size_         Number of elements to copy
+     * @param start_index   Starting index in the internal data array
      */
     void Get(T* arr, uint8_t size_ = size, uint8_t start_index = 0);
 
     /**
-     * @brief Sets the data for a given servo with mutex protection.
+     * @brief Sets data, with mutex protection.
      * 
-     * @param id         The ID of the servo. If the ID is invalid (out of range), the operation is ignored.
-     * @param data       The value to set.
+     * @param index         Index to set a value
+     * @param data          The value to set
      */
     void Set(uint8_t id, T data);
 
     /**
-     * @brief Sets a segment of the servo data array with mutex protection.
+     * @brief Sets a range of data into the internal array, with mutex protection.
      * 
-     * @param arr         Pointer to the input array containing the data to set.
-     * @param size_       Number of elements to write.
-     * @param start_index Starting index in the internal array to begin writing (default: 0).
+     *        Will return without changing values, if the the range is out of bounds.
+     * 
+     * @param arr           Pointer to the input array containing the data to set
+     * @param size_         Number of elements to set for
+     * @param start_index   Starting index in the internal array to begin writing
      */
     void Set(const T* arr, uint8_t size_ = size, uint8_t start_index = 0);
 };

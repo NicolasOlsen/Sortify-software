@@ -92,7 +92,7 @@ public:
     /**
      * @brief Sends goal positions to multiple servos simultaneously using syncWrite.
      * 
-     * This function clamps each target position to its corresponding servo's min/max angle limits,
+     * This function clamps each target position to its corresponding servos min/max angle limits,
      * converts the value from degrees to raw Dynamixel units, and sends a single syncWrite packet
      * to update all specified servos at once. It does NOT wait for a response.
      * 
@@ -230,7 +230,7 @@ bool DxlServo::syncSetPositions(const DxlServo (&servos)[DXLAmount], const float
     sync_info.p_xels = info_xels;
     sync_info.xel_count = DXLAmount;
     sync_info.is_info_changed = true;
-    sync_info.packet.p_buf = nullptr;        // Let SDK manage internal buffer
+    sync_info.packet.p_buf = nullptr;
     sync_info.packet.is_completed = false;
 
     return dxl.syncWrite(&sync_info);

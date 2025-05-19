@@ -11,10 +11,10 @@
 constexpr bool MANAGER_DEBUG = true;
 
 /**
- * @brief Manages a fixed set of Dynamixel and analog servos.
+ * @brief Manages a fixed set of Dxl (Dynamixel) and analog servos, for more modular control.
  * 
  * 
- * @tparam sizeDXL Number of Dynamixel servos
+ * @tparam sizeDXL Number of Dxl servos
  * @tparam sizeAnalog Number of analog servos
  */
 template<uint8_t sizeDXL, uint8_t sizeAnalog>
@@ -29,33 +29,38 @@ public:
      */
     ServoManager(const DxlServo (&dxlServos)[sizeDXL], const AnalogServo (&analogServos)[sizeAnalog]);
 
+    /**
+     * @brief Initializes the necesarry servo libraries.
+     * 
+     * @return True if all the servo libraries initialized succesfully
+     */
     static bool initServoLibraries();
 
     /**
-     * @brief Initializes a single servo by ID (calls ping, sets mode, enables torque).
+     * @brief Initializes a single Dxl servo by ID (disables torque, calls ping, sets mode, enables torque).
      * 
-     * @param id Servo ID (DXL or analog channel)
+     * @param id Dxl servo ID
      * 
      * @return True if the servo was initialized successfully
      */
     bool initDxl(uint8_t id);
 
     /**
-     * @brief Sends a ping to a specific servo to check connectivity.
+     * @brief Sends a ping to a specific Dxl servo to check connectivity.
      * 
-     * @param id Servo ID
+     * @param id Dxl servo ID
      * 
-     * @return True if ping was successful
+     * @return True if ping was successfully sent
      */
     bool ping(uint8_t id);
 
     /**
-     * @brief Sets the position of a servo.
+     * @brief Sets the position of any servo type.
      * 
-     * @param id Servo ID
+     * @param id Any servo ID
      * @param degrees Target angle in degrees
      * 
-     * @return True if the command was successfully sent
+     * @return True if the command was successfull
      */
     bool setGoalPosition(uint8_t id, float degrees);
 
@@ -65,80 +70,84 @@ public:
      * @param id Servo ID
      * @param velocityDegPerSec Target velocity in velocity degree per second
      * 
-     * @return True if the command was successfully sent
+     * @return True if the command was successfull
      */
     bool setGoalVelocity(uint8_t id, float velocityDegPerSec);
 
     /**
-     * @brief Gets the current position of a Dynamizel servo.
+     * @brief Gets the current position of a Dxl servo.
      * 
-     * @param id Servo ID
+     * @param id Dxl servo ID
      * 
-     * @return Current angle in degrees, or 0 may mean not found for dynamiexel, -1.0f means unsupported
+     * @return Current angle in degrees, or 0 may mean not found for dynamiexel, -1.0f means unsupported (out of Dxl range)
      */
     float getCurrentPosition(uint8_t id);
 
     /**
-     * @brief Gets the last known error code for a DXL servo.
+     * @brief Gets the last known error code for a Dxl servo.
      * 
-     * @param id Servo ID
+     * @param id Dxl servo ID
      * 
-     * @return DXLLibErrorCode_t error code (DXL only; analog servos return 0)
+     * @return DXLLibErrorCode_t error code (Dxl only; analog servos return 0)
      */
     DXLLibErrorCode_t getError(uint8_t id);
 
     /**
      * @brief Checks whether a target position is within the servo's allowed range.
      * 
-     * @param id Servo ID
-     * @param position Target position in degrees
+     * @param id Any servo ID
+     * @param position Position to check (in degrees)
      * 
      * @return True if within allowed bounds
      */
     bool checkPositionInAllowedRange(uint8_t id, float position);
 
     /**
-     * @brief Initializes all dynamixel servos (ping, mode, torque).
+     * @brief Initializes all Dxl servos (disables torque, calls ping, sets mode, enables torque).
      * 
-     * @return True if all servos responded and were configured
+     * @return True if all Dxl servos initialized succesfully
      */
     bool initAll();
 
     /**
-     * @brief Sets goal positions for all servos from an array.
+     * @brief Sets goal positions for all servos in the 'ServoManager object'.
      * 
-     * @param goalPositions Array of goal positions
+     *        Uses sync-write and is therefore difficult to make dynamic.
      * 
-     * @return true if all values were set successfully
+     * @param goalPositions Array of goal positions, with size equal to the total servo amount
+     * 
+     * @return True if all values were set successfully
      */
     bool setGoalPositions(const float (&goalPositions)[sizeDXL + sizeAnalog]);
 
     /**
-     * @brief Sets velocity values for all DXL servos from an array.
+     * @brief Sets the velocity for all DXL servos in the 'ServoManager object'.
      * 
-     * @param goalVelocities Array of velocity values in deg/s
+     *        Uses sync-write and is therefore difficult to make dynamic.
      * 
-     * @return true if all velocities were applied
+     * @param goalVelocities Array of velocity values in deg/s, with size equal to the total Dxl amount
+     * 
+     * @return True if all velocities were applied
      */
     bool setGoalVelocities(const float (&goalVelocities)[sizeDXL]);
 
     /**
-     * @brief Reads current positions of all DXL servos into a float array.
+     * @brief Reads current positions of all Dxl servos in the 'ServoManager object'.
      * 
-     * @param out Array to store values
+     * @param out Array to store the positions
      * 
-     * @return true if all reads succeeded
+     * @return True if all reads succeeded
      */
     bool getCurrentPositions(float (&out)[sizeDXL]);
 
     /**
-     * @brief Gets error codes for DXL servos.
+     * @brief Gets error codes for Dxl servos.
      * 
      * @param out Output buffer for errors
      * @param size Number of entries to fill (must not exceed sizeDXL - startIndex)
      * @param startIndex Offset into the DXL servo list
      * 
-     * @return true if all errors retrieved
+     * @return True if all errors retrieved
      */
     bool getErrors(DXLLibErrorCode_t* out, uint8_t size, uint8_t startIndex = 0);
 

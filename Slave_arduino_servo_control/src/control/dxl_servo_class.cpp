@@ -137,7 +137,7 @@ bool DxlServo::checkPositionInAllowedRange(float position) const {
 uint32_t DxlServo::convertDegPerSecToRaw(float velocityDegPerSec) const {
     // Adjust the scale factor to better fit smaller velocities
     if (velocityDegPerSec < 2.0f) {
-        velocityDegPerSec = 1.0f;  // Ensures you dont get 0.
+        velocityDegPerSec = 1.0f;  // Ensures you dont get 0, which means infinite velocity
     }
 
     float rpm = velocityDegPerSec * (60.0f / 360.0f);  // deg/s -> rpm

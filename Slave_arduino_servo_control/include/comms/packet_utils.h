@@ -37,6 +37,8 @@ void makePacketCRC(uint8_t* packet, uint8_t packetSize);
  * 
  * @param packet The packet to be validated
  * @param size The size of the packet
+ * 
+ * @return True if the calculated CRC is equal to the recieved CRC
  */
 bool validatePacketCRC(const uint8_t* packet, uint8_t packetSize);
 
@@ -45,6 +47,8 @@ bool validatePacketCRC(const uint8_t* packet, uint8_t packetSize);
  * 
  * @param packet The packet to calculate CRC16
  * @param size The size of the packet
+ * 
+ * @return The calculated CRC16
  */
 uint16_t calculateCRC16(const uint8_t* packet, uint8_t packetSize);
 
@@ -54,7 +58,7 @@ uint16_t calculateCRC16(const uint8_t* packet, uint8_t packetSize);
  * @param packetSize The size of the recieving packet
  * @param expectedSize The size of the expected packet size
  * 
- * @return If the packet is the expected size
+ * @return If the packet is of the expected size
  */
 bool packetExpectedSize(uint8_t packetSize, uint8_t expectedSize);
 

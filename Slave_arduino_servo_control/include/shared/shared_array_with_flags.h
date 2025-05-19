@@ -8,9 +8,9 @@
 #include "utils/debug_utils.h"
 
 /**
- * @brief Shared container for thread-safe access to servo data.
+ * @brief Shared container for thread-safe access to array data.
  * 
- * @tparam T The type of data to store (float, enum, etc.)
+ * @tparam T The type of data to store
  * @tparam size The number of elements in the array.
  */
 template <typename T, uint8_t size>
@@ -28,81 +28,85 @@ public:
     SharedArrayWithFlags();
 
     /**
-     * @brief Retrieves the data for a given servo with mutex protection.
+     * @brief Gets data, with mutex protection.
      * 
-     * @param id        The ID of the servo. If the ID is invalid (out of range), the returned value is default-initialized (e.g., 0).
-     * @param changeFlag If true, the updated flag will be cleared after the value is read.
-     * @return The corresponding data value, or default-constructed T if the ID is invalid.
+     * @param index         Index to get from
+     * @param changeFlag    If true, the updated flag will be changed to False after the value is read
+     * @return              The corresponding data value, or default-constructed T if the ID is invalid
      */
-    T Get(uint8_t id, bool changeFlag = false);
+    T Get(uint8_t index, bool changeFlag = false);
 
     /**
-     * @brief Copies a segment of the stored servo data into the provided array with mutex protection.
+     * @brief Copies a range of data into the provided array, with mutex protection.
      * 
-     * @param arr         Pointer to the output array that will be filled with servo data.
-     * @param size_       Number of elements to copy.
-     * @param start_index Starting index in the internal data array (default: 0).
-     * @param changeFlag  If true, the update flags for the copied elements will be cleared.
+     *        Will return without copying, if the the range is out of bounds.
+     * 
+     * @param arr           Pointer to the output array that will be filled with data
+     * @param size_         Number of elements to copy
+     * @param start_index   Starting index in the internal data array
+     * @param changeFlag    If true, the update flags for the copied elements will be changed to False
      */
     void Get(T* arr, uint8_t size_ = size, uint8_t start_index = 0, bool changeFlag = false);
 
     /**
-     * @brief Sets the data for a given servo with mutex protection.
+     * @brief Sets data, with mutex protection.
      * 
-     * @param id         The ID of the servo. If the ID is invalid (out of range), the operation is ignored.
-     * @param data       The value to set.
-     * @param changeFlag If true, the updated flag will be marked as true after setting.
+     * @param index         Index to set a value
+     * @param data          The value to set
+     * @param changeFlag    If true, the updated flag will be marked as true after setting
      */
-    void Set(uint8_t id, T data, bool changeFlag = true);
+    void Set(uint8_t index, T data, bool changeFlag = true);
 
     /**
-     * @brief Sets a segment of the servo data array with mutex protection.
+     * @brief Sets a range of data into the internal array, with mutex protection.
      * 
-     * @param arr         Pointer to the input array containing the data to set.
-     * @param size_       Number of elements to write.
-     * @param start_index Starting index in the internal array to begin writing (default: 0).
-     * @param changeFlag  If true, the updated flags for the affected entries will be set.
+     *        Will return without changing values, if the the range is out of bounds.
+     * 
+     * @param arr           Pointer to the input array containing the data to set
+     * @param size_         Number of elements to set for
+     * @param start_index   Starting index in the internal array to begin writing
+     * @param changeFlag    If true, the updated flags for the affected entries will be set
      */
     void Set(const T* arr, uint8_t size_ = size, uint8_t start_index = 0, bool changeFlag = true);
 
     /**
-     * @brief Gets the updated flag for a given servo with mutex protection.
+     * @brief Gets the flag for a given index, with mutex protection.
      * 
-     * @param id The ID of the servo. If the ID is invalid (out of range), returns false.
-     * @return True if the flag is set, false otherwise.
+     * @param index     The index of the flag. Return False if the index is out of range
+     * @return          The flag value for the given index
      */
-    bool GetFlag(uint8_t id) const;
+    bool GetFlag(uint8_t index) const;
 
     /**
-     * @brief Sets the updated flag for a given servo with mutex protection.
+     * @brief Sets the flag for a index, with mutex protection.
      * 
-     * @param id   The ID of the servo. If the ID is invalid (out of range), the operation is ignored.
-     * @param flag The flag value to set.
+     * @param index     The index of the flag. Does nothing if the index is out of range
+     * @param flag      The flag value to set
      */
-    void SetFlag(uint8_t id, bool flag);
+    void SetFlag(uint8_t index, bool flag);
 
     /**
-     * @brief Gets a range of update flags with mutex protection.
+     * @brief Copies a range of flags, with mutex protection.
      * 
-     * @param out         The output array to fill with flags.
-     * @param size_       Number of flags to retrieve.
-     * @param start_index Index to start reading from.
+     * @param out         The output array to copy with flags
+     * @param size_       Number of flags to retrieve
+     * @param start_index Index to start reading from
      */
     void GetFlags(bool* out, uint8_t size_ = size, uint8_t start_index = 0) const;
 
     /**
-     * @brief Sets a range of update flags for the servo data with mutex protection.
+     * @brief Sets a range values for the internal flags, with mutex protection.
      * 
-     * @param flags        Pointer to an array of boolean flag values to apply.
-     * @param size_        Number of flag entries to write.
-     * @param start_index  Starting index in the internal flag array (default: 0).
+     * @param flags        Pointer to an array of flag values to apply
+     * @param size_        Number of flags to apply
+     * @param start_index  Starting index in the internal flag array
      */
     void SetFlags(const bool* flags, uint8_t size_ = size, uint8_t start_index = 0);
 
     /**
-     * @brief Sets the all the flags the servos, with mutex protection.
+     * @brief       Sets the value for all the flags, with mutex protection.
      *
-     * @param flag The flag value to set.
+     * @param flag  The common flag value to set
      */
     void SetAllFlags(bool flag);
 };
@@ -115,19 +119,19 @@ SharedArrayWithFlags<T, size>::SharedArrayWithFlags() {
 
 
 template <typename T, uint8_t size>
-T SharedArrayWithFlags<T, size>::Get(uint8_t id, bool changeFlag) {
+T SharedArrayWithFlags<T, size>::Get(uint8_t index, bool changeFlag) {
     T data = {};     // Safe default
-    if (id >= size) return data;
+    if (index >= size) return data;
 
     ScopedLock lock(mutex);
     if (lock.isLocked()) {
-        data = arr_m[id];
+        data = arr_m[index];
 
         if (changeFlag) {           // Optional to change flag
-            flags_m[id] = false;
+            flags_m[index] = false;
         }
 
-        Debug::infoln(String(id) + " got data " + String(data));
+        Debug::infoln(String(index) + " got data " + String(data));
     }
 
     return data;
@@ -155,16 +159,16 @@ void SharedArrayWithFlags<T, size>::Get(T* arr, uint8_t size_, uint8_t start_ind
 }
 
 template <typename T, uint8_t size>
-void SharedArrayWithFlags<T, size>::Set(uint8_t id, T data, bool changeFlag) {
-    if (id >= size) return;
+void SharedArrayWithFlags<T, size>::Set(uint8_t index, T data, bool changeFlag) {
+    if (index >= size) return;
 
     ScopedLock lock(mutex);
     if (lock.isLocked()) {
-        arr_m[id] = data;
+        arr_m[index] = data;
         if (changeFlag) {
-            flags_m[id] = true;
+            flags_m[index] = true;
         }
-        Debug::infoln(String(id) + " set data " + String(data));
+        Debug::infoln(String(index) + " set data " + String(data));
     }
 }
 
@@ -189,14 +193,14 @@ void SharedArrayWithFlags<T, size>::Set(const T* arr, uint8_t size_, uint8_t sta
 }
 
 template <typename T, uint8_t size>
-bool SharedArrayWithFlags<T, size>::GetFlag(uint8_t id) const{
+bool SharedArrayWithFlags<T, size>::GetFlag(uint8_t index) const{
     bool flag = false;
-    if (id >= size) return flag;
+    if (index >= size) return flag;
 
     ScopedLock lock(mutex);
     if (lock.isLocked()) {
-        flag = flags_m[id];
-        Debug::infoln(String(id) + " get flag " + String(flag));
+        flag = flags_m[index];
+        Debug::infoln(String(index) + " get flag " + String(flag));
     }
 
     return flag;
@@ -218,13 +222,13 @@ void SharedArrayWithFlags<T, size>::GetFlags(bool* out, uint8_t size_, uint8_t s
 }
 
 template <typename T, uint8_t size>
-void SharedArrayWithFlags<T, size>::SetFlag(uint8_t id, bool flag) {
-    if (id >= size) return;
+void SharedArrayWithFlags<T, size>::SetFlag(uint8_t index, bool flag) {
+    if (index >= size) return;
 
     ScopedLock lock(mutex);
     if (lock.isLocked()) {
-        flags_m[id] = flag;
-        Debug::infoln(String(id) + " set flag " + String(flag));
+        flags_m[index] = flag;
+        Debug::infoln(String(index) + " set flag " + String(flag));
     }
 }
 

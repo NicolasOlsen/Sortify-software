@@ -48,19 +48,6 @@ bool AnalogServo::setToPosition(float position) {
     return false;
 }
 
-bool AnalogServo::trySetToPosition(float position) {
-    if (!checkPositionInAllowedRange(position)) {
-        #ifdef DEBUG
-        Debug::warnln("AnalogServo: Refused to set channel " + String(_channel) +
-                    " to out-of-range position " + String(position));
-        #endif
-
-        return false;
-    }
-
-    return setToPosition(position);
-}
-
 bool AnalogServo::checkPositionInAllowedRange(float position) const {
     return (position >= _minAllowedDegree) && (position <= _maxAllowedDegree);
 }

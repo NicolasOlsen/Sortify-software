@@ -9,30 +9,30 @@ namespace COMM_CODE {
     // The SBC sends these commands to request information or control the servos.
     enum class MainCommand : uint8_t {
         // Status and Health
-        PING_ = 0x01,                 // Master checks if Arduino is alive (Arduino responds with PING + system state)
-        NACK,                        // Negative Acknowledge (command failed), payload = ComErrorCode
+        PING_ = 0x01,               // Master checks if Arduino is alive (Arduino responds with PING + system state)
+        NACK,                       // Negative Acknowledge (command failed), payload = ComErrorCode
     
         // Position Control
-        READ_POSITION_RANGE,        // Read current positions from [start_id, count]
-        WRITE_POSITION_RANGE,       // Set target positions for [start_id, count]
+        READ_POSITION_RANGE,        // Read current positions, params: [start_id, count]
+        WRITE_POSITION_RANGE,       // Set target positions, params: [start_id, count]
         STOP_MOVEMENT,              // Immediately stops all servo movement
     
         // Velocity Control
-        WRITE_VELOCITY_RANGE,       // Set velocities for [start_id, count]
+        WRITE_VELOCITY_RANGE,       // Set velocities, params: [start_id, count]
     
         // Error Reporting
-        READ_CURRENT_ERROR_RANGE,   // Read current error from [start_id, count]
-        READ_LAST_ERROR_RANGE       // Read last error from [start_id, count]
+        READ_CURRENT_ERROR_RANGE,   // Read current error, params: [start_id, count]
+        READ_LAST_ERROR_RANGE       // Read last error, params: [start_id, count]
     };       
 
     // System Status Codes
     // Arduino sends one of these status codes in response to REQUEST_STATUS.
     enum class StatusCode : uint8_t {
-        INITIALIZING = 0x01,   // System is booting up, hardware not ready
+        INITIALIZING = 0x01,   // System is booting up, hardware not ready (Currently only used at boot)
         IDLE,                  // System initialized and waiting for commands
         MOVING,                // Servos are actively moving to target positions
-        FAULT_INIT,            // Initialization failure (e.g., servo not found, UART setup failed)
-        FAULT_RUNTIME          // Failure during operation (e.g., overheat, disconnection)
+        FAULT_INIT,            // Initialization failure
+        FAULT_RUNTIME          // Critical failure during operation
     };
 
     // Error Codes
