@@ -6,17 +6,17 @@ import time
 # logging.basicConfig(level=logging.INFO)
 
 def calculate_synchronized_velocities(current_pos, target_pos, max_velocity):
-	# Finn maksimal avstand en servo må bevege seg
+	# Find the max distance a servo has to travel
 	distances = [abs(t - c) for t, c in zip(target_pos, current_pos)]
 	max_distance = max(distances)
 	
 	if max_distance == 0:
 		return [0] * len(current_pos)
 	
-	# Beregn tid det vil ta for den mest krevende servoen med maks_velocity
+	# Calculate the time for the max distance
 	time_needed = max_distance / max_velocity
 	
-	# Regn ut hvilken velocity hver servo trenger for å nå mål på samme tid
+	# Calculate the velocity for each servo, to arrive at the same time
 	velocities = [round(d / time_needed) for d in distances]
 	return velocities
 
@@ -42,7 +42,7 @@ def busyWait(uart, timeout=5.0):
 	time.sleep(0.7)  # Initial wait for movement to start
 
 	status = SystemStatus.MOVING
-	while status == SystemStatus.MOVING:
+	while status == SystemStatus.MOVING:	# Will loop until the motorcontroller is not in MOVING state
 		if time.time() - start_time > timeout:
 			print("[WARNING] busyWait() timed out after {:.1f} seconds.".format(timeout))
 			break

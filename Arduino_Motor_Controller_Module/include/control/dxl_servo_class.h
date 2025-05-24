@@ -11,7 +11,7 @@
 /**
  * @brief Represents a single Dynamixel servo.
  * 
- * This class handles unit conversion, clamping, and writing position/velocity commands
+ * This class handles unit conversion, clamping, and sending position/velocity/init commands
  * for a specific servo. All communication goes through a shared DynamixelShield object
  * defined in the implementation file.
  */
