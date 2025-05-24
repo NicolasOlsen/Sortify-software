@@ -18,7 +18,7 @@ void InitSystem() {
     Shared::systemState.Set(tempStatus);
 
     #ifdef DEBUG
-        Debug::init(BAUDRATE_COMM);
+        Debug::init(DEBUG_BAUD);
         Debug::infoln("Initializing");
     #endif
 
@@ -44,7 +44,7 @@ void InitSystem() {
     // This allows the system to inspect which servos failed to init
     DXLLibErrorCode_t tempErrors[Shared::servoManager.getDXLAmount()];
 
-     // Gets the errors
+    // Gets the errors
     Shared::servoManager.getErrors(
         tempErrors, 
         Shared::servoManager.getDXLAmount());

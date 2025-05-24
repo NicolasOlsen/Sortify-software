@@ -8,7 +8,7 @@
 #include "utils/debug_utils.h"
 
 /**
- * @brief Shared container for thread-safe access to array data.
+ * @brief Shared container for FreeRTOS-task safe access to array data.
  * 
  * @tparam T The type of data to store
  * @tparam size The number of elements in the array.

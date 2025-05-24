@@ -10,7 +10,9 @@
 namespace PACKET_UTILS {
 
 /**
- * @brief This function converts the bytes stored in a communication packet to the proper type and adds it in a array
+ * @brief This function converts the bytes stored in a 
+ *          communication packet to the proper type and adds it in a array
+ *           
  * @tparam T The type to convert the bytes to
  * 
  * @param byteData The array to copy from

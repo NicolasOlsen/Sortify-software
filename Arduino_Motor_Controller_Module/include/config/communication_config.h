@@ -5,10 +5,10 @@
 
 // === UART Settings ===
 constexpr uint32_t BAUDRATE_COMM = 1000000;
-#define COMM_SERIAL Serial1
+#define COMM_SERIAL Serial1     // Dont use Serial'0', it's used for Dxl bus
 
 // === FreeRTOS Queue Settings ===
-constexpr uint16_t QUEUE_SIZE = 4; // Holds up to 4 full packets
+constexpr uint16_t QUEUE_SIZE = 4;
 
 // === Packet Format ===
 constexpr uint8_t UART_BUFFER_SIZE = 128;
@@ -21,9 +21,9 @@ static_assert(START_BYTES_SIZE > 0, "START_BYTES_SIZE must be greater than 0");
  // Packet structure: [START][LEN][CMD][PAYLOAD][SYSTEM_STATE][CRC_L][CRC_H]
 constexpr uint8_t MIN_PACKET_SIZE = START_BYTES_SIZE + 1 + 1 + 2;  // start + len + cmd + CRC   |   recieving bytes doesnt have system state
 
-constexpr uint8_t LENGTH_INDEX  = START_BYTES_SIZE;
-constexpr uint8_t COMMAND_INDEX = START_BYTES_SIZE + 1;     // Start bytes, then length byte, then main command byte
-constexpr uint8_t PAYLOAD_INDEX = COMMAND_INDEX + 1;
+constexpr uint8_t LENGTH_INDEX  = START_BYTES_SIZE;         // Start bytes, then length byte,
+constexpr uint8_t COMMAND_INDEX = START_BYTES_SIZE + 1;     // Main command byte, after length
+constexpr uint8_t PAYLOAD_INDEX = COMMAND_INDEX + 1;        // first payload byte, after main command byte
 
 
 #endif // COMMUNICATION_CONFIG_H

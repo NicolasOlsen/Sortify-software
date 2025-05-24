@@ -13,18 +13,22 @@ public:
     /**
      * @brief Construct a new AnalogServo object
      * 
-     * @param channel PWM channel (0–15) used by the PCA9685
+     * @param channel PWM channel (0–15 for one) used by the PCA9685
      * @param minPWM Minimum PWM pulse
      * @param maxPWM Maximum PWM pulse
      * @param maxDegree Physical max range of the servo
-     * @param minAllowedDegree Minimum allowed position for this servo
-     * @param maxAllowedDegree Maximum allowed position
+     * @param minAllowedDegree Minimum allowed position for this servo (for clamping and position limit validation)
+     * @param maxAllowedDegree Maximum allowed position (for clamping and position limit validation)
      */
     AnalogServo(uint8_t channel, uint16_t minPWM, uint16_t maxPWM,
                 float maxDegree = 180.0f,
                 float minAllowedDegree = 0.0f,
                 float maxAllowedDegree = 180.0f);
 
+    /**
+     * @brief A simple constructor only used to initaliy construct a AnalogServo object
+     *          for the ServoManager. Should not be used otherwise.
+     */
     AnalogServo();
 
     /**
@@ -67,7 +71,20 @@ private:
     float _minAllowedDegree;
     float _maxAllowedDegree;
 
+    /**
+     * @brief Calculates the necessary PWM value for the given degree.
+     * 
+     * @param degrees Degree turn to PWM value 
+     * 
+     * @return The calculated PWM value in uint16_t
+     */
     uint16_t degreesToPwm(float degrees) const;
 };
+
+/*
+Note:
+For future expansion, remember that multiple Adafruit PCA9685 servo drivers can be connected,
+assuming they have different IDs. Choosen by the solder points
+*/
 
 #endif // ANALOG_SERVO_CLASS_H

@@ -5,38 +5,36 @@
 
 namespace COMM_CODE {
     // Main Command List
-    // These commands are used for communication between the SBC (such as a Raspberry Pi) and the Arduino.
-    // The SBC sends these commands to request information or control the servos.
     enum class MainCommand : uint8_t {
         // Status and Health
-        PING_ = 0x01,               // Master checks if Arduino is alive (Arduino responds with PING + system state)
-        NACK,                       // Negative Acknowledge (command failed), payload = ComErrorCode
+        PING_ = 0x01,               // To only get system state
+        NACK,                       // Negative Acknowledge (response command if packet processing failed), 
+                                    //  params: ComErrorCode
     
         // Position Control
         READ_POSITION_RANGE,        // Read current positions, params: [start_id, count]
         WRITE_POSITION_RANGE,       // Set target positions, params: [start_id, count]
-        STOP_MOVEMENT,              // Immediately stops all servo movement
+        STOP_MOVEMENT,              // Stop all servo movement. Usefull for an easy or emergency stop
     
         // Velocity Control
-        WRITE_VELOCITY_RANGE,       // Set velocities, params: [start_id, count]
+        WRITE_VELOCITY_RANGE,       // Set velocities, params: [start_id, count]. Usefull for synced movement
     
         // Error Reporting
-        READ_CURRENT_ERROR_RANGE,   // Read current error, params: [start_id, count]
-        READ_LAST_ERROR_RANGE       // Read last error, params: [start_id, count]
+        READ_CURRENT_ERROR_RANGE,   // Read current error, params: [start_id, count]. Usefull for debugging/logging
+        READ_LAST_ERROR_RANGE       // Read last error, params: [start_id, count]. Usefull for debugging/logging
     };       
 
     // System Status Codes
-    // Arduino sends one of these status codes in response to REQUEST_STATUS.
     enum class StatusCode : uint8_t {
-        INITIALIZING = 0x01,   // System is booting up, hardware not ready (Currently only used at boot)
-        IDLE,                  // System initialized and waiting for commands
-        MOVING,                // Servos are actively moving to target positions
-        FAULT_INIT,            // Initialization failure
-        FAULT_RUNTIME          // Critical failure during operation
+        INITIALIZING = 0x01,   // System is initializing up
+        IDLE,                  // No servos are moving
+        MOVING,                // At least one servo is moving
+        FAULT_INIT,            // Failure duringInitialization
+        FAULT_RUNTIME          // Failure during operation
     };
 
     // Error Codes
-    // These errors are reported with a NACK payload.
+    // These errors are sent with a NACK payload.
     enum class ComErrorCode : uint8_t {
         SYSTEM_FAULT = 0x01,        // System is in fault mode
         COMM_TIMEOUT,               // Timeout waiting for full packet

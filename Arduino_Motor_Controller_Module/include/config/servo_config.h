@@ -14,9 +14,10 @@ inline constexpr float DEFAULT_SERVO_POSITIONS[] = {
     180.0f,
     130.0f,
     90.0f,
-    100.0f
+    90.0f
 };
 
+// Default velocities, ONLY Dxl
 inline constexpr float DEFAULT_SERVO_VELOCITIES[] = {
     30.0f,
     30.0f,
@@ -46,7 +47,7 @@ static_assert(sizeof(DEFAULT_SERVO_POSITIONS) / sizeof(DEFAULT_SERVO_POSITIONS[0
 
 // === Communication Settings ===
 // Dynamixel configuration
-constexpr uint32_t BAUDRATE_DXL          = 1000000;  // Baudrate for Dynamixel bus
-constexpr float    DXL_PROTOCOL_VERSION  = 2.0f;     // Dynamixel protocol version (usually 2.0)
+constexpr uint32_t BAUDRATE_DXL          = 1000000;
+constexpr float    DXL_PROTOCOL_VERSION  = 2.0f;
 
 #endif // SERVO_CONFIG_H

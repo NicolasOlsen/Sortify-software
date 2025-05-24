@@ -38,7 +38,7 @@ static void TaskServoSetter(void *pvParameters) {
 			Shared::goalPositions.Get(tempGoalPositions);
 		
 			manager.setGoalVelocities(tempGoalVelocities);
-			manager.setGoalPositions(tempGoalPositions);  
+			manager.setGoalPositions(tempGoalPositions);
 		}
 
 		#ifdef TIMING_MODE

@@ -13,7 +13,7 @@ void UART_init(uint32_t baudRate) {
 }
 
 void receiveUARTData() {
-    // State machine to parse UART packets in phases: SYNC -> LENGTH -> DATA
+    // State machine to control the recieving flow
     static enum class ReceiveState { SYNC, LENGTH, DATA } state = ReceiveState::SYNC;
 
     static uint8_t expectedLength = 0;         // Total expected packet length
@@ -30,7 +30,7 @@ void receiveUARTData() {
         packetStartTime = 0;
     };
 
-    // Check for packet timeout (prevents hanging mid-packet if something went wrong)
+    // Check for packet timeout
     if (state != ReceiveState::SYNC && (millis() - packetStartTime > PACKET_TIMEOUT)) {
         Debug::printHex(localBuffer, localIndex);
         Debug::print("\n");

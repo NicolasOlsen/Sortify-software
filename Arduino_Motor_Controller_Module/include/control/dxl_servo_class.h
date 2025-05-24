@@ -9,7 +9,7 @@
 #include "utils/debug_utils.h"
 
 /**
- * @brief Represents a single Dynamixel servo on the bus.
+ * @brief Represents a single Dynamixel servo.
  * 
  * This class handles unit conversion, clamping, and writing position/velocity commands
  * for a specific servo. All communication goes through a shared DynamixelShield object
@@ -22,13 +22,17 @@ public:
      * @brief Construct a new DxlServo object
      * 
      * @param id ID of the servo on the bus
-     * @param minAngle Minimum allowed angle in degrees (for clamping)
-     * @param maxAngle Maximum allowed angle in degrees (for clamping)
+     * @param minAngle Minimum allowed angle in degrees (for clamping and position limit validation)
+     * @param maxAngle Maximum allowed angle in degrees (for clamping and position limit validation)
      * @param velocityUnitScale Conversion factor from raw velocity units to RPM.
      *                          Example: XM430 uses 0.229 RPM/unit
      */
     DxlServo(uint8_t id, float minAngle = 0.0f, float maxAngle = 360.0f, float velocityUnitScale = 0.229f);
 
+    /**
+     * @brief A simple constructor only used to initaliy construct a DxlServo object
+     *          for the ServoManager. Should not be used otherwise.
+     */
     DxlServo();
 
     /**
@@ -94,16 +98,16 @@ public:
      * 
      * This function clamps each target position to its corresponding servos min/max angle limits,
      * converts the value from degrees to raw Dynamixel units, and sends a single syncWrite packet
-     * to update all specified servos at once. It does NOT wait for a response.
-     * 
-     * This method assumes that the 'DxlServo::init()' has been called for each servo.
+     * to update all specified servos at once. 
+     *
+     * Note: It does NOT wait for a response, and will therefore not recieve servo state.
      * 
      * @tparam DXLAmount Number of servos in the array
      * 
-     * @param servos Pointer to an array of 'DxlServo' objects to command
-     * @param positions Pointer to an array of target angles (in degrees) for each servo
+     * @param servos Reference to an array of DxlServo objects to command
+     * @param positions Reference to an array of target angles (in degrees) for each servo
      * 
-     * @return True if the syncWrite packet was sent successfully, false otherwise
+     * @return True if the packet was sent successfully, false otherwise
      */
     template <uint8_t DXLAmount>
     static bool syncSetPositions(const DxlServo (&servos)[DXLAmount], const float (&positions)[DXLAmount]);
@@ -124,17 +128,17 @@ public:
      * @brief Sends target velocities to multiple servos simultaneously using syncWrite.
      * 
      * This function converts each target velocity from degrees per second to raw Dynamixel units,
-     * based on the velocity scale configured in each 'DxlServo' instance. It then sends a single 
-     * syncWrite packet to update all specified servos. It does NOT wait for a response.
-     * 
-     * This method assumes that the 'DxlServo::init()' has been called for each servo.
+     * based on the velocity scale configured in each DxlServo object. It then sends a single 
+     * syncWrite packet to update all specified servos. 
+     *
+     * Note: It does NOT wait for a response, and will therefore not recieve servo state.
      * 
      * @tparam DXLAmount Number of servos in the array
      * 
-     * @param servos Pointer to an array of 'DxlServo' objects to command
-     * @param velocityDegPerSec Pointer to an array of target velocities (in degrees per second) for each servo
+     * @param servos Reference to an array of DxlServo objects to command
+     * @param velocityDegPerSec Reference to an array of target velocities (in degrees per second) for each servo
      * 
-     * @return True if the syncWrite packet was sent successfully, false otherwise
+     * @return True if the packet was sent successfully, false otherwise
      */
     template <uint8_t DXLAmount>
     static bool syncSetVelocities(const DxlServo (&servos)[DXLAmount], const float (&velocityDegPerSec)[DXLAmount]);
@@ -148,18 +152,19 @@ public:
     float getPosition();
 
     /**
-     * @brief Reads the current positions of multiple servos using bulkRead.
+     * @brief Reads the current positions of multiple servos using syncRead.
      * 
-     * This function performs a bulkRead request for all specified servos and fills the provided
+     * This function performs a syncRead request for all specified servos and fills the provided
      * array with the current position of each servo (in degrees). Communication results and
-     * per-servo error states are stored internally in each 'DxlServo' instance via '_lastErrorCode'.
-     * 
-     * This method assumes that the 'DxlServo::init()' has been called for each servo.
+     * per-servo error states are stored internally in each DxlServo object.
+     *
+     * Note: If at least one servo does not respond, non of the servos will have valid values, 
+     *          and the function will set a timeout error for all servo objects.
      * 
      * @tparam DXLAmount Number of servos in the array
      * 
-     * @param servos Pointer to an array of 'DxlServo' objects to read from
-     * @param positions Pointer to an array to be filled with current positions (in degrees)
+     * @param servos Reference to an array of DxlServo objects to read from
+     * @param positions Reference to an array to be filled with current positions (in degrees)
      * 
      * @return True if at all servos responded successfully, false otherwise
      */
@@ -176,7 +181,9 @@ public:
     /**
      * @brief Gets the last communication error code from the last operation.
      * 
-     * Call immediately after a failed set/get to inspect the cause.
+     * Use immediately after a communication function with response to inspect the servo state.
+     *
+     * Note: 0 is smartServo is OK, 3 means timeout.
      * 
      * @return DXLLibErrorCode_t Error code from DynamixelShield
      */
@@ -331,6 +338,7 @@ bool DxlServo::syncGetPositions(DxlServo (&servos)[DXLAmount], float (&positions
     else {
         allSuccess = false;
 
+        // No servo respons, means that at least one smartservo had a timeout
         for (uint8_t i = 0; i < DXLAmount; ++i) {
             positions[i] = 0.0f;
             servos[i]._lastErrorCode = DXL_LIB_ERROR_TIMEOUT;

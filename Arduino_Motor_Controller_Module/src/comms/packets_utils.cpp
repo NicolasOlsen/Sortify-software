@@ -16,7 +16,6 @@ namespace PACKET_UTILS {
 
 // Appends a CRC-16 checksum to the last two bytes of the packet
 void makePacketCRC(uint8_t* packet, uint8_t packetSize) {
-    // Basic null and size validation
     if (packet == nullptr || packetSize < MIN_PACKET_SIZE) {
         Debug::errorln("Invalid packet or length in makePacketCRC!");
         return;
@@ -29,7 +28,6 @@ void makePacketCRC(uint8_t* packet, uint8_t packetSize) {
     packet[packetSize - 1] = (crc >> 8) & 0xFF;
 
     #ifdef DEBUG
-        // Debug output of generated CRC
         Debug::infoln("Generated CRC Bytes: " + 
             String(packet[packetSize - 2], HEX) + " " + 
             String(packet[packetSize - 1], HEX));

@@ -14,7 +14,6 @@
     static TaskTimingStats commTiming;
 #endif
 
-
 namespace UART_COMM {
     QueueHandle_t uartPacketQueue;
 }

@@ -23,9 +23,6 @@ public:
         }
     }
 
-    SharedVariable(const SharedVariable&) = delete;
-    SharedVariable& operator=(const SharedVariable&) = delete;
-
     T Get() {
         T temp{};
         ScopedLock lock(mutex);

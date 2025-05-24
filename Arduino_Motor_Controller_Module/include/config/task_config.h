@@ -42,4 +42,11 @@ constexpr TaskConfig SET_TASK = { pdMS_TO_TICKS(33), 2, 512 };
  */
 constexpr TaskConfig READ_TASK = { pdMS_TO_TICKS(33), 1, 512 };
 
+/*
+NOTE!
+pdMS_TO_TICKS will show that 17ms = 1 tick, and every 16ms after the inital tick.
+pdTICKS_TO_MS will show that 1 tick = 16ms.
+The documentation references the 15ms watchdog timer as ticks.
+*/
+
 #endif // TASK_CONFIG_H

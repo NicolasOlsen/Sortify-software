@@ -429,6 +429,7 @@ class MasterUART:
 		payload = bytes([start_id, len(values)]) + struct.pack(f'<{len(values)}f', *values)
 		result = self._send_command(CommandCode.WRITE_VELOCITY_RANGE.value, payload)
 		return self._to_comm_response(result, CommandCode.WRITE_VELOCITY_RANGE)
+	
 
 	def read_current_error_range(self, start_id: int, count: int) -> CommResponse:
 		"""
